@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome Bookmarks Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            padding: 50px;
+            font-family: 'Karla';
+        }
+        
+        dl {
+            padding: 25px;
+            background: #f1f1f1;
+            margin: 0 0 20px 0;
+            border-radius: 12px;
+        }
+        
+        dl dl {
+            background: #fff;
+        }
+        
+        dl dl dl {
+            background: #f1f1f1;
+        }
+        
+        dl dl dl dl {
+            background: #fff;
+        }
+        
+        dl dt a {
+            padding: 4px 0;
+            display: flex;
+            flex-direction: row-reverse;
+            flex-wrap: nowrap;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        
+        dl dt a img {
+            margin: 0 10px 0 10px;
+        }
+        
+        a {
+            color: #000;
+            text-decoration: unset;
+        }
+        
+        a:hover {
+            color: #0719a3;
+        }
+        
+        .upload-section {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .upload-section h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        
+        input[type="file"] {
+            padding: 10px 20px;
+            font-family: 'Karla';
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        #bookmarks-container {
+            margin-top: 20px;
+        }
+        
+        .folder-title {
+            font-weight: 700;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .message.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .message.success {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-section">
+        <h1>📚 Chrome Bookmarks Viewer</h1>
+        <p>Upload your Chrome bookmarks XML file to view and organize your bookmarks.</p>
+        <div class="file-input-wrapper">
+            <input type="file" id="fileInput" accept=".xml,.html" />
+        </div>
+        <div id="message"></div>
+    </div>
+    
+    <div id="bookmarks-container"></div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    processBookmarks(content);
+                } catch (error) {
+                    showMessage('Error processing file: ' + error.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        function showMessage(text, type = 'info') {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = 'message ' + type;
+            messageDiv.textContent = text;
+            messageDiv.style.display = 'block';
+        }
+
+        function processBookmarks(xmlContent) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlContent, 'text/html');
+            
+            // Find all top-level folders (typically under the Bookmarks Bar or Bookmarks Menu)
+            const allDLs = xmlDoc.querySelectorAll('DL');
+            let topLevelFolders = [];
+            
+            // Find the main bookmark structure
+            if (allDLs.length > 0) {
+                const mainDL = allDLs[0];
+                const directChildren = Array.from(mainDL.children);
+                
+                directChildren.forEach(child => {
+                    if (child.tagName === 'DT') {
+                        const h3 = child.querySelector('H3');
+                        if (h3) {
+                            const folderName = h3.textContent.trim();
+                            const folderDL = child.querySelector('DL');
+                            if (folderDL) {
+                                topLevelFolders.push({
+                                    name: folderName,
+                                    element: folderDL
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Collect and process all bookmarks by folder
+            let bookmarksByFolder = {};
+            
+            topLevelFolders.forEach(folder => {
+                const links = collectLinks(folder.element);
+                const processedLinks = removeDuplicatesAndSubpages(links);
+                bookmarksByFolder[folder.name] = processedLinks;
+            });
+            
+            displayBookmarks(bookmarksByFolder);
+            
+            // Apply icon script after rendering
+            setTimeout(applyIcons, 100);
+            
+            const totalLinks = Object.values(bookmarksByFolder).reduce((sum, links) => sum + links.length, 0);
+            showMessage(`✅ Successfully processed ${totalLinks} unique bookmarks across ${Object.keys(bookmarksByFolder).length} folders.`, 'success');
+        }
+
+        function collectLinks(element) {
+            const links = [];
+            const anchors = element.querySelectorAll('A');
+            
+            anchors.forEach(anchor => {
+                const href = anchor.getAttribute('HREF') || anchor.getAttribute('href');
+                const icon = anchor.getAttribute('ICON') || anchor.getAttribute('icon');
+                const text = anchor.textContent.trim();
+                
+                if (href) {
+                    links.push({
+                        url: href,
+                        icon: icon,
+                        text: text
+                    });
+                }
+            });
+            
+            return links;
+        }
+
+        function removeDuplicatesAndSubpages(links) {
+            const domainMap = new Map();
+            
+            links.forEach(link => {
+                try {
+                    const url = new URL(link.url);
+                    const domain = url.protocol + '//' + url.hostname;
+                    
+                    // Keep only the main domain link (shortest path)
+                    if (!domainMap.has(domain) || link.url.length < domainMap.get(domain).url.length) {
+                        // Prefer root domain links
+                        if (url.pathname === '/' || url.pathname === '') {
+                            domainMap.set(domain, link);
+                        } else if (!domainMap.has(domain)) {
+                            domainMap.set(domain, link);
+                        }
+                    }
+                } catch (e) {
+                    // Invalid URL, skip it
+                }
+            });
+            
+            return Array.from(domainMap.values());
+        }
+
+        function displayBookmarks(bookmarksByFolder) {
+            const container = document.getElementById('bookmarks-container');
+            container.innerHTML = '';
+            
+            Object.keys(bookmarksByFolder).forEach(folderName => {
+                const links = bookmarksByFolder[folderName];
+                
+                if (links.length === 0) return;
+                
+                const folderDiv = document.createElement('div');
+                folderDiv.className = 'folder-section';
+                
+                const dl = document.createElement('dl');
+                
+                // Add folder title
+                const titleDt = document.createElement('dt');
+                const titleH3 = document.createElement('h3');
+                titleH3.className = 'folder-title';
+                titleH3.textContent = folderName;
+                titleDt.appendChild(titleH3);
+                dl.appendChild(titleDt);
+                
+                // Add links
+                links.forEach(link => {
+                    const dt = document.createElement('dt');
+                    const anchor = document.createElement('a');
+                    anchor.href = link.url;
+                    anchor.textContent = link.text || link.url;
+                    anchor.target = '_blank';
+                    anchor.rel = 'noopener noreferrer';
+                    
+                    if (link.icon) {
+                        anchor.setAttribute('ICON', link.icon);
+                    }
+                    
+                    dt.appendChild(anchor);
+                    dl.appendChild(dt);
+                });
+                
+                folderDiv.appendChild(dl);
+                container.appendChild(folderDiv);
+            });
+        }
+
+        function applyIcons() {
+            var links = document.querySelectorAll("a");
+            for (var i = 0; i < links.length; i++) {
+                var icon = links[i].getAttribute("ICON");
+                if (icon) {
+                    // Remove existing img if any
+                    var existingImg = links[i].querySelector('img');
+                    if (existingImg) {
+                        existingImg.remove();
+                    }
+                    
+                    var img = document.createElement("img");
+                    img.src = icon;
+                    img.width = 16;
+                    img.height = 16;
+                    links[i].appendChild(img);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+
