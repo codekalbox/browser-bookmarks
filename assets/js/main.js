@@ -4,7 +4,8 @@
 const state = {
     db: null,
     fullCategories: null, // Stores categorized data for fast searching
-    isSearching: false
+    isSearching: false,
+    saveTimeout: null // For debounced persistence
 };
 
 function initTheme() {
@@ -171,19 +172,44 @@ function initDB() {
     });
 }
 
-async function saveToDB(links, processed) {
-    if (!state.db) return;
-    const tx = state.db.transaction(['links', 'cache'], 'readwrite');
-    const linkStore = tx.objectStore('links');
-    const cacheStore = tx.objectStore('cache');
+/**
+ * Optimized Persistence: Shadow-Sync Strategy
+ * Separates fast cache updates from heavy flat-list rebuilding
+ */
+function saveCacheOnly(processed) {
+    if (!state.db) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const tx = state.db.transaction(['cache'], 'readwrite');
+        tx.objectStore('cache').put(processed, 'categorized');
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e.target.error);
+    });
+}
 
-    await linkStore.clear();
-    links.forEach(l => linkStore.add({
-        title: l.title, url: l.url, icon: l.icon, folder: l.folder, displayUrl: l.displayUrl
-    }));
+function saveToDB(links, processed) {
+    return new Promise((resolve, reject) => {
+        if (!state.db) return resolve();
+        const tx = state.db.transaction(['links', 'cache'], 'readwrite');
+        const linkStore = tx.objectStore('links');
+        const cacheStore = tx.objectStore('cache');
 
-    // Save processed structure for instant load
-    await cacheStore.put(processed, 'categorized');
+        linkStore.clear();
+        links.forEach(l => {
+            linkStore.add({
+                title: l.title,
+                url: l.url,
+                icon: l.icon,
+                folder: l.folder,
+                displayUrl: l.displayUrl,
+                internalId: l.internalId // Preserve for precision
+            });
+        });
+
+        cacheStore.put(processed, 'categorized');
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e.target.error);
+    });
 }
 
 function loadFromDB() {
@@ -203,57 +229,87 @@ function loadFromDB() {
     });
 }
 
-async function removeBookmark(url, btnElement) {
+function removeBookmark(itemId, btnElement) {
     if (!state.fullCategories) return;
 
-    // 1. Optimistic UI Removal (Instant)
+    // 2. Optimistic UI Removal (Instant UX)
     const card = btnElement.closest('.bookmark-card-wrapper');
     const section = btnElement.closest('.category-section');
 
-    if (card) {
-        card.style.opacity = '0';
-        card.style.transform = 'scale(0.9)';
-        card.style.pointerEvents = 'none';
+    // 1. Update In-Memory Master State (Surgical Update by Internal ID)
+    const titleEl = section ? section.querySelector('.category-title') : null;
+    const catTitle = titleEl ? titleEl.textContent.trim() : null;
 
-        // Remove from DOM after a quick fade
-        setTimeout(() => {
-            const grid = card.parentElement;
-            card.remove();
+    if (catTitle && state.fullCategories[catTitle]) {
+        // filter by unique internalId instead of URL
+        state.fullCategories[catTitle] = state.fullCategories[catTitle].filter(l => l.internalId !== itemId);
 
-            // If section is now empty, remove it too
-            if (grid && grid.children.length === 0) {
-                const sectionId = section.id;
-                section.remove();
-                // Refresh Index to remove empty category
-                const tocLink = document.querySelector(`.toc-link[data-target="${sectionId}"]`);
-                if (tocLink) tocLink.parentElement.remove();
-            }
-        }, 200);
-    }
-
-    // 2. Update Link Counts in UI immediately
-    const totalCountEl = document.getElementById('link-count');
-    if (totalCountEl) {
-        const currentCount = parseInt(totalCountEl.innerText) || 0;
-        totalCountEl.innerText = `${Math.max(0, currentCount - 1)} Links`;
-    }
-
-    // Update TOC count
-    if (section) {
-        const tocCount = document.querySelector(`.toc-link[data-target="${section.id}"] .toc-count`);
-        if (tocCount) {
-            const currentCatCount = parseInt(tocCount.innerText) || 0;
-            tocCount.innerText = Math.max(0, currentCatCount - 1);
+        if (state.fullCategories[catTitle].length === 0) {
+            delete state.fullCategories[catTitle];
         }
     }
 
-    // 3. Background Processing (Hidden from user)
-    const { links } = await loadFromDB();
-    const filtered = links.filter(l => l.url !== url);
-    const processed = BookmarkParser.process(filtered);
+    if (card) {
+        // FAST KILL: Remove from view instantly
+        card.style.display = 'none';
 
-    await saveToDB(filtered, processed);
-    state.fullCategories = processed;
+        // Cleanup DOM after a tiny delay for any remaining transitions
+        setTimeout(() => {
+            const grid = card.parentElement;
+            if (card.parentNode) card.remove();
+
+            if (grid && grid.children.length === 0) {
+                const sectionId = section.id;
+                section.remove();
+                const tocLink = document.querySelector(`.toc-link[data-target="${sectionId}"]`);
+                if (tocLink) tocLink.parentElement.remove();
+            }
+        }, 50);
+    }
+
+    // 3. Update Visual Counts (Live Sync Engine)
+    const updateGlobalCounts = () => {
+        const totalCountEl = document.getElementById('link-count');
+        const catBadge = document.getElementById('toc-cat-count');
+        const linkBadge = document.getElementById('toc-link-total');
+
+        const folderNames = Object.keys(state.fullCategories);
+        let totalCount = 0;
+        folderNames.forEach(cat => totalCount += state.fullCategories[cat].length);
+
+        if (totalCountEl) totalCountEl.innerText = `${totalCount} Links`;
+        if (catBadge) catBadge.innerText = `${folderNames.length} Folders`;
+        if (linkBadge) linkBadge.innerText = `${totalCount} Links`;
+
+        // Update specific TOC item count (current category)
+        if (section) {
+            const tocCount = document.querySelector(`.toc-link[data-target="${section.id}"] .toc-count`);
+            if (tocCount) {
+                const currentCatLinks = state.fullCategories[catTitle] || [];
+                tocCount.innerText = currentCatLinks.length;
+            }
+        }
+    };
+
+    updateGlobalCounts();
+
+    // 4. SHADOW SYNC (Dual-Stream Persistence)
+    // A. IMMEDIATE Cache Lock - Saves categorized state instantly (prevents resurrection)
+    saveCacheOnly(state.fullCategories).catch(err => console.error("[ShadowSync] Cache failed:", err));
+
+    // B. DEBOUNCED Full Rebuild - Updates flat links for export after user stops deleting
+    if (state.saveTimeout) clearTimeout(state.saveTimeout);
+    state.saveTimeout = setTimeout(async () => {
+        const flatLinks = [];
+        Object.values(state.fullCategories).forEach(list => flatLinks.push(...list));
+        try {
+            await saveToDB(flatLinks, state.fullCategories);
+            console.log("[Persistence] Full database sync completed.");
+            state.saveTimeout = null;
+        } catch (err) {
+            console.error("[Persistence] Full sync failed:", err);
+        }
+    }, 1000); // 1s debounce for heavy operations
 }
 
 /**
@@ -346,6 +402,11 @@ function renderBookmarks(categories) {
         const links = categories[catName];
         totalLinks += links.length;
 
+        // Sort links alphabetically by URL (groups similar domains together)
+        const sortedLinks = [...links].sort((a, b) => {
+            return a.displayUrl.toLowerCase().localeCompare(b.displayUrl.toLowerCase());
+        });
+
         // 1. Create Section
         const sectionId = `category-${index}`;
         const section = document.createElement('section');
@@ -354,7 +415,7 @@ function renderBookmarks(categories) {
 
         // Optimized innerHTML build for speed
         let gridHtml = '';
-        links.forEach((link) => {
+        sortedLinks.forEach((link) => {
             const displayTitle = link.title.length > 25 ? link.title.substring(0, 22) + '...' : link.title;
             const displayUrl = link.displayUrl.length > 40 ? link.displayUrl.substring(0, 37) + '...' : link.displayUrl;
 
@@ -367,7 +428,7 @@ function renderBookmarks(categories) {
                         </div>
                         <span class="bookmark-url" title="${link.displayUrl}">${displayUrl}</span>
                     </a>
-                    <button class="bookmark-remove" data-url="${link.url}" title="Remove Item">✕</button>
+                    <button class="bookmark-remove" data-id="${link.internalId}" title="Remove Item">✕</button>
                 </div>
             `;
         });
@@ -428,11 +489,19 @@ function renderBookmarks(categories) {
         if (link) {
             const targetId = link.getAttribute('data-target');
             const targetEl = document.getElementById(targetId);
+
+            // 1. Close Sidebar First (Restores Body Scroll)
             toggleTOC(false);
+
             if (targetEl) {
-                window.scrollTo({
-                    top: targetEl.offsetTop - 100,
-                    behavior: 'smooth'
+                // 2. Wait 1 tick for DOM/Overflow to settle, then scroll with precision offset
+                requestAnimationFrame(() => {
+                    const headerHeight = 90;
+                    const topPos = targetEl.getBoundingClientRect().top + window.scrollY - headerHeight;
+                    window.scrollTo({
+                        top: topPos,
+                        behavior: 'smooth'
+                    });
                 });
             }
         }
@@ -602,13 +671,13 @@ function initEvents() {
     });
 
     // 5. Removal logic
-    dropZone.onclick = async (e) => {
+    dropZone.onclick = (e) => {
         const removeBtn = e.target.closest('.bookmark-remove');
         if (removeBtn) {
             e.preventDefault();
             e.stopPropagation();
-            const url = removeBtn.getAttribute('data-url');
-            await removeBookmark(url, removeBtn);
+            const itemId = removeBtn.getAttribute('data-id');
+            removeBookmark(itemId, removeBtn);
         }
     };
 
@@ -639,7 +708,64 @@ function initEvents() {
  */
 /*
 async function handleMapping() {
-    ... (function body) ...
+    if (!state.fullCategories) return;
+
+    const overlay = document.getElementById('processing-overlay');
+    const updateUI = (status, detail, progress) => {
+        document.getElementById('processing-status').innerText = status;
+        document.getElementById('processing-detail').innerText = detail;
+        document.getElementById('processing-bar').style.transform = `scaleX(${progress})`;
+    };
+
+    overlay.classList.add('active');
+    updateUI('Scanning Library', 'Identifying duplicates across categories...', 0.3);
+
+    const flatLinks = [];
+    Object.values(state.fullCategories).forEach(list => flatLinks.push(...list));
+
+    const seen = new Set();
+    const duplicates = [];
+    const unique = [];
+
+    flatLinks.forEach(link => {
+        if (seen.has(link.url)) {
+            duplicates.push(link);
+        } else {
+            seen.add(link.url);
+            unique.push(link);
+        }
+    });
+
+    if (duplicates.length === 0) {
+        updateUI('Clean Library', 'No duplicates found. Your library is optimal.', 1);
+        setTimeout(() => overlay.classList.remove('active'), 1500);
+        return;
+    }
+
+    overlay.classList.remove('active');
+    const confirmed = await showConfirm(
+        'Deduplicate Library?',
+        `Found ${duplicates.length} duplicate links. Clean them up while preserving original folders?`
+    );
+
+    if (confirmed) {
+        overlay.classList.add('active');
+        updateUI('Deep Cleaning', 'Removing redundancy...', 0.7);
+
+        const processed = BookmarkParser.process(unique);
+        await saveToDB(unique, processed);
+        state.fullCategories = processed;
+
+        updateUI('Success', 'Library normalized and compressed.', 1);
+        
+        const tl = gsap.timeline({ onComplete: () => {
+            overlay.classList.remove('active');
+            renderBookmarks(processed);
+        }});
+        tl.to('.processing-content', { opacity: 0, duration: 0.4 });
+        tl.to('.processing-panel.top', { yPercent: -100, duration: 1, ease: "expo.inOut" });
+        tl.to('.processing-panel.bottom', { yPercent: 100, duration: 1, ease: "expo.inOut" }, "<");
+    }
 }
 */
 
@@ -695,9 +821,18 @@ async function handleFiles(fileList) {
 
     if (allBookmarks.length > 0) {
         updateUI('Organizing', 'Establishing architectural structure...', 0.7);
-        const { links: existing } = await loadFromDB();
 
-        const merged = [...existing, ...allBookmarks];
+        // 2.1 Use In-Memory State as truth (Preserves deletions that haven't hit DB yet)
+        const existingFlat = [];
+        if (state.fullCategories) {
+            Object.values(state.fullCategories).forEach(list => existingFlat.push(...list));
+        } else {
+            // Only load from DB if state is empty (e.g. first load)
+            const { links } = await loadFromDB();
+            existingFlat.push(...links);
+        }
+
+        const merged = [...existingFlat, ...allBookmarks];
         const processed = BookmarkParser.process(merged);
 
         const flatLinks = [];
@@ -747,4 +882,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (e) {
         console.error("Persistence failed:", e);
     }
+
+    // Protection against losing pending saves
+    window.onbeforeunload = () => {
+        if (state.saveTimeout) {
+            console.warn("Unsaved changes pending! Please wait for sync.");
+        }
+    };
 });

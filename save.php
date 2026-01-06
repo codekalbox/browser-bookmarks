@@ -25,15 +25,18 @@ if (isset($_GET['action']) && $_GET['action'] === 'clear') {
 // ACTION: UPLOAD
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!empty($_FILES['files'])) {
+        $allowedExtensions = ['html', 'xml', 'json'];
         foreach ($_FILES['files']['name'] as $key => $name) {
             $tmpPath = $_FILES['files']['tmp_name'][$key];
             if ($tmpPath) {
-                // Keep original names for clarity, or add timestamp prefix
-                $safeName = basename($name);
-                move_uploaded_file($tmpPath, $uploadsDir . '/' . $safeName);
+                $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                if (in_array($ext, $allowedExtensions)) {
+                    $safeName = basename($name);
+                    move_uploaded_file($tmpPath, $uploadsDir . '/' . $safeName);
+                }
             }
         }
-        echo json_encode(['status' => 'success', 'message' => 'Files saved to /uploads/']);
+        echo json_encode(['status' => 'success', 'message' => 'Valid files saved to /uploads/']);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'No files received']);
     }

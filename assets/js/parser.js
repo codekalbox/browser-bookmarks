@@ -107,21 +107,24 @@ class BookmarkParser {
     }
 
     /**
-     * Categorizes bookmarks by folder
+     * Categorizes bookmarks by folder and ensures every item has a unique signature
      */
     static process(bookmarks) {
         const categories = {};
+        let idCounter = Date.now(); // Base for unique IDs
 
-        bookmarks.forEach(book => {
+        bookmarks.forEach((book, idx) => {
             const normalizedUrl = this._normalizeUrl(book.url);
-
-            // 1. Use raw category name (no more merging)
             const category = (book.folder || 'Uncategorized').trim();
 
             if (!categories[category]) categories[category] = [];
 
+            // Assign a unique internal ID if not present
+            const uniqueId = book.internalId || `item-${idCounter++}-${idx}`;
+
             categories[category].push({
                 ...book,
+                internalId: uniqueId,
                 displayUrl: normalizedUrl
             });
         });

@@ -603,14 +603,11 @@ body:not(.has-content) .section-container {
 
 .category-section {
     margin-bottom: 120px;
-    /* Strong separation */
     border-top: 1px solid var(--category-border);
     padding-top: 40px;
     transition: border-color 0.4s ease;
-
-    /* Performance: Skip rendering off-screen categories */
-    content-visibility: auto;
-    contain-intrinsic-size: 1000px;
+    scroll-margin-top: 110px;
+    /* Precise offset for sticky header */
 }
 
 .category-title {
