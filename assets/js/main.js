@@ -17,6 +17,47 @@ function initTheme() {
     if (themeBtn) themeBtn.style.display = 'flex';
 }
 
+/**
+ * Custom High-End Confirmation Modal
+ */
+function showConfirm(title, message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('custom-modal');
+        const titleEl = document.getElementById('modal-title');
+        const messageEl = document.getElementById('modal-message');
+        const confirmBtn = document.getElementById('modal-confirm');
+        const cancelBtn = document.getElementById('modal-cancel');
+
+        titleEl.innerText = title;
+        messageEl.innerText = message;
+        modal.classList.add('active');
+
+        // A11Y: Focus confirm button for immediate keyboard interaction
+        setTimeout(() => confirmBtn.focus(), 100);
+
+        const handleKeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                cleanup(true);
+            } else if (e.key === 'Escape') {
+                cleanup(false);
+            }
+        };
+
+        const cleanup = (val) => {
+            modal.classList.remove('active');
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
+            window.removeEventListener('keydown', handleKeydown);
+            resolve(val);
+        };
+
+        confirmBtn.onclick = () => cleanup(true);
+        cancelBtn.onclick = () => cleanup(false);
+        window.addEventListener('keydown', handleKeydown);
+    });
+}
+
 function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
@@ -51,7 +92,7 @@ function initPreloader() {
 
     tl.to(status, {
         val: 100,
-        duration: 1.5,
+        duration: 2.5, // Slower, more premium feel
         ease: "power2.inOut",
         onUpdate: () => {
             const formatted = Math.floor(status.val).toString().padStart(3, '0');
@@ -67,34 +108,34 @@ function initPreloader() {
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden && tl.isActive()) {
             const elapsed = (Date.now() - startTime) / 1000;
-            if (elapsed > 1.5) tl.progress(1);
+            if (elapsed > 2.5) tl.progress(1);
         }
     });
 
     tl.to(['.preloader-content', '#percent-counter'], {
         opacity: 0,
-        duration: 0.5,
+        duration: 0.8,
         ease: "power2.in"
     });
 
     tl.to('.preloader-panel.top', {
         yPercent: -100,
-        duration: 1,
-        ease: "power4.inOut"
-    }, "+=0.1");
+        duration: 1.4,
+        ease: "expo.inOut"
+    }, "+=0.2");
 
     tl.to('.preloader-panel.bottom', {
         yPercent: 100,
-        duration: 1,
-        ease: "power4.inOut"
+        duration: 1.4,
+        ease: "expo.inOut"
     }, "<");
 
     tl.from('.site-header', {
         y: -50,
         opacity: 0,
-        duration: 0.8,
+        duration: 1.2,
         ease: "power3.out"
-    }, "-=0.2");
+    }, "-=0.4");
 
     tl.from('.empty-state', {
         y: 20,
@@ -109,31 +150,30 @@ function initPreloader() {
  */
 const DB_NAME = 'LinkCuratorDB';
 const DB_VERSION = 3;
-let db;
 
 function initDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
         request.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains('links')) {
-                db.createObjectStore('links', { keyPath: 'id', autoIncrement: true });
+            const database = e.target.result;
+            if (!database.objectStoreNames.contains('links')) {
+                database.createObjectStore('links', { keyPath: 'id', autoIncrement: true });
             }
-            if (!db.objectStoreNames.contains('cache')) {
-                db.createObjectStore('cache');
+            if (!database.objectStoreNames.contains('cache')) {
+                database.createObjectStore('cache');
             }
         };
         request.onsuccess = (e) => {
-            db = e.target.result;
-            resolve(db);
+            state.db = e.target.result;
+            resolve(state.db);
         };
         request.onerror = (e) => reject(e.target.error);
     });
 }
 
 async function saveToDB(links, processed) {
-    if (!db) return;
-    const tx = db.transaction(['links', 'cache'], 'readwrite');
+    if (!state.db) return;
+    const tx = state.db.transaction(['links', 'cache'], 'readwrite');
     const linkStore = tx.objectStore('links');
     const cacheStore = tx.objectStore('cache');
 
@@ -148,8 +188,8 @@ async function saveToDB(links, processed) {
 
 function loadFromDB() {
     return new Promise((resolve) => {
-        if (!db) return resolve({ links: [], processed: null });
-        const tx = db.transaction(['links', 'cache'], 'readonly');
+        if (!state.db) return resolve({ links: [], processed: null });
+        const tx = state.db.transaction(['links', 'cache'], 'readonly');
 
         const linkRequest = tx.objectStore('links').getAll();
         const cacheRequest = tx.objectStore('cache').get('categorized');
@@ -163,13 +203,57 @@ function loadFromDB() {
     });
 }
 
-async function removeBookmark(url) {
+async function removeBookmark(url, btnElement) {
+    if (!state.fullCategories) return;
+
+    // 1. Optimistic UI Removal (Instant)
+    const card = btnElement.closest('.bookmark-card-wrapper');
+    const section = btnElement.closest('.category-section');
+
+    if (card) {
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.9)';
+        card.style.pointerEvents = 'none';
+
+        // Remove from DOM after a quick fade
+        setTimeout(() => {
+            const grid = card.parentElement;
+            card.remove();
+
+            // If section is now empty, remove it too
+            if (grid && grid.children.length === 0) {
+                const sectionId = section.id;
+                section.remove();
+                // Refresh Index to remove empty category
+                const tocLink = document.querySelector(`.toc-link[data-target="${sectionId}"]`);
+                if (tocLink) tocLink.parentElement.remove();
+            }
+        }, 200);
+    }
+
+    // 2. Update Link Counts in UI immediately
+    const totalCountEl = document.getElementById('link-count');
+    if (totalCountEl) {
+        const currentCount = parseInt(totalCountEl.innerText) || 0;
+        totalCountEl.innerText = `${Math.max(0, currentCount - 1)} Links`;
+    }
+
+    // Update TOC count
+    if (section) {
+        const tocCount = document.querySelector(`.toc-link[data-target="${section.id}"] .toc-count`);
+        if (tocCount) {
+            const currentCatCount = parseInt(tocCount.innerText) || 0;
+            tocCount.innerText = Math.max(0, currentCatCount - 1);
+        }
+    }
+
+    // 3. Background Processing (Hidden from user)
     const { links } = await loadFromDB();
     const filtered = links.filter(l => l.url !== url);
     const processed = BookmarkParser.process(filtered);
+
     await saveToDB(filtered, processed);
     state.fullCategories = processed;
-    renderBookmarks(processed);
 }
 
 /**
@@ -408,6 +492,8 @@ function initEvents() {
     const uploadBtn = document.getElementById('upload-trigger');
     const tocToggle = document.getElementById('toc-toggle');
     const themeToggle = document.getElementById('theme-toggle');
+    // To enable Mapping: Uncomment the line below
+    // const mappingBtn = document.getElementById('mapping-data');
     const tocClose = document.getElementById('toc-close');
     const overlay = document.getElementById('side-panel-overlay');
     const searchInput = document.getElementById('search-input');
@@ -454,25 +540,42 @@ function initEvents() {
 
     // 3. Clear Data & Export
     clearBtn.onclick = async () => {
-        if (confirm("Are you sure? This will delete all saved database links AND physical files in /uploads/.")) {
+        const confirmed = await showConfirm(
+            'Wipe Database?',
+            'This will delete all saved database links AND physical files in /uploads/. This action is permanent.'
+        );
+
+        if (confirmed) {
             try {
-                const tx = db.transaction(['links', 'cache'], 'readwrite');
-                await tx.objectStore('links').clear();
-                await tx.objectStore('cache').clear();
+                const tx = state.db.transaction(['links', 'cache'], 'readwrite');
+                tx.objectStore('links').clear();
+                tx.objectStore('cache').clear();
 
                 tx.oncomplete = async () => {
-                    await fetch('save.php?action=clear');
-                    state.fullCategories = null;
+                    // Try to clear server files, but reload regardless
+                    try {
+                        await fetch('save.php?action=clear');
+                    } catch (e) {
+                        console.warn("Server clear failed, proceeding with UI reset.");
+                    }
+                    location.reload();
+                };
+
+                tx.onerror = (err) => {
+                    console.error("Transaction failed:", err);
                     location.reload();
                 };
             } catch (err) {
-                console.error("Clear failed:", err);
+                console.error("Clear flow failed:", err);
                 location.reload();
             }
         }
     };
 
     exportBtn.onclick = () => exportBookmarks();
+
+    // To enable Mapping: Uncomment the line below
+    // if (mappingBtn) mappingBtn.onclick = async () => handleMapping();
 
     // 4. Drag & Drop Feedback
     window.addEventListener('dragover', (e) => e.preventDefault());
@@ -505,9 +608,7 @@ function initEvents() {
             e.preventDefault();
             e.stopPropagation();
             const url = removeBtn.getAttribute('data-url');
-            if (confirm('Remove this item?')) {
-                await removeBookmark(url);
-            }
+            await removeBookmark(url, removeBtn);
         }
     };
 
@@ -533,24 +634,56 @@ function initEvents() {
 }
 
 /**
+ * Automated Mapping (Deduplication)
+ * To enable this feature: Uncomment the function below and the references in initEvents
+ */
+/*
+async function handleMapping() {
+    ... (function body) ...
+}
+*/
+
+/**
  * Shared File Handler
  */
 async function handleFiles(fileList) {
     const files = Array.from(fileList);
     if (files.length === 0) return;
 
+    const overlay = document.getElementById('processing-overlay');
+    const bar = document.getElementById('processing-bar');
+    const statusEl = document.getElementById('processing-status');
+    const detailEl = document.getElementById('processing-detail');
+
+    const updateUI = (status, detail, progress) => {
+        statusEl.innerText = status;
+        detailEl.innerText = detail;
+        bar.style.transform = `scaleX(${progress})`;
+    };
+
+    // Show Overlay
+    overlay.classList.add('active');
+    updateUI('Curating Library', 'Starting physical preservation...', 0.05);
+
     // 1. Physically save files to /uploads/ via PHP Bridge
     const formData = new FormData();
     files.forEach(f => formData.append('files[]', f));
 
-    fetch('save.php', { method: 'POST', body: formData })
-        .then(r => r.json())
-        .then(data => console.log("[Storage]", data.message))
-        .catch(e => console.error("[Storage Error] Could not save to /uploads/", e));
+    try {
+        await fetch('save.php', { method: 'POST', body: formData });
+        updateUI('Curating Library', 'Synchronizing with database...', 0.2);
+    } catch (e) {
+        console.error("[Storage Error] Could not save to /uploads/", e);
+    }
 
     // 2. Parse and Persist to IndexedDB
     const allBookmarks = [];
-    for (const file of files) {
+    const totalFiles = files.length;
+
+    for (let i = 0; i < totalFiles; i++) {
+        const file = files[i];
+        updateUI('Analyzing Data', `Processing ${file.name}...`, 0.2 + (i / totalFiles) * 0.4);
+
         try {
             const text = await file.text();
             const bookmarks = BookmarkParser.parse(text);
@@ -561,17 +694,39 @@ async function handleFiles(fileList) {
     }
 
     if (allBookmarks.length > 0) {
+        updateUI('Organizing', 'Establishing architectural structure...', 0.7);
         const { links: existing } = await loadFromDB();
+
         const merged = [...existing, ...allBookmarks];
         const processed = BookmarkParser.process(merged);
 
         const flatLinks = [];
         Object.values(processed).forEach(list => flatLinks.push(...list));
 
+        updateUI('Finalizing', 'Baking instant-load cache...', 0.9);
         await saveToDB(flatLinks, processed);
+
         state.fullCategories = processed;
         renderBookmarks(processed);
     }
+
+    updateUI('Success', 'Library curated successfully.', 1);
+
+    // Cinematic Panel Exit (Same style as main preloader)
+    setTimeout(() => {
+        const tl = gsap.timeline({
+            onComplete: () => {
+                overlay.classList.remove('active');
+                // Reset panels and data after fade out
+                gsap.set(['.processing-panel.top', '.processing-panel.bottom'], { yPercent: 0 });
+                setTimeout(() => updateUI('Curating Library', 'Organizing your digital resources...', 0), 500);
+            }
+        });
+
+        tl.to(['.processing-content'], { opacity: 0, duration: 0.4 });
+        tl.to('.processing-panel.top', { yPercent: -100, duration: 1.2, ease: "expo.inOut" }, "+=0.1");
+        tl.to('.processing-panel.bottom', { yPercent: 100, duration: 1.2, ease: "expo.inOut" }, "<");
+    }, 800);
 }
 
 /**

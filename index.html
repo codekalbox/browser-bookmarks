@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bookmarks | Premium Link Curator</title>
+    <title>MWS Bookmark Manager | Premium Link Curator</title>
     <meta name="description"
         content="A high-end, offline-capable bookmarks manager with intelligent normalization and a premium grid layout.">
 
@@ -32,6 +32,20 @@
             </div>
         </div>
         <div class="percentage-counter" id="percent-counter">000%</div>
+    </div>
+
+    <!-- Processing Overlay (For Imports) -->
+    <div id="processing-overlay" class="processing-overlay">
+        <div class="processing-panel top"></div>
+        <div class="processing-panel bottom"></div>
+
+        <div class="processing-content">
+            <h3 id="processing-status">Curating Library</h3>
+            <div class="processing-progress-wrapper">
+                <div id="processing-bar" class="processing-bar"></div>
+            </div>
+            <p id="processing-detail">Organizing your digital resources...</p>
+        </div>
     </div>
 
     <!-- Main Content -->
@@ -65,6 +79,8 @@
                         <span id="theme-icon">🌙</span>
                     </button>
                     <button id="toc-toggle" class="secondary-btn">Index</button>
+                    <!-- To enable the Mapping feature, uncomment the button below -->
+                    <!-- <button id="mapping-data" class="secondary-btn">Mapping</button> -->
                     <button id="export-data" class="secondary-btn">Export</button>
                     <button id="clear-data" class="secondary-btn">Clear All</button>
                     <div id="upload-trigger" class="upload-btn">
@@ -105,9 +121,23 @@
             </svg>
         </button>
 
+        <!-- Custom Modal -->
+        <div id="custom-modal" class="modal-overlay">
+            <div class="modal-container">
+                <div class="modal-content">
+                    <h3 id="modal-title">Are you sure?</h3>
+                    <p id="modal-message">This action cannot be undone.</p>
+                    <div class="modal-actions">
+                        <button id="modal-cancel" class="modal-btn secondary">Cancel</button>
+                        <button id="modal-confirm" class="modal-btn primary">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <footer class="site-footer">
             <div class="footer-inner">
-                <p>&copy; 2026 Premium Curator. All rights reserved.</p>
+                <p>&copy; 2026 MWS Bookmark Manager. All rights reserved.</p>
             </div>
         </footer>
     </main>

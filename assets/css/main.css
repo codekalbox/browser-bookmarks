@@ -634,6 +634,7 @@ body:not(.has-content) .section-container {
 .bookmark-card-wrapper {
     position: relative;
     width: 100%;
+    transition: all 0.2s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .bookmark-card {
@@ -792,6 +793,176 @@ body:not(.has-content) .section-container {
     text-align: center;
     color: var(--text-secondary);
     font-size: 0.85rem;
+}
+
+/* --- Processing Overlay --- */
+.processing-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+}
+
+.processing-panel {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    background: var(--bg-color);
+    z-index: -1;
+}
+
+.processing-panel.top {
+    top: 0;
+}
+
+.processing-panel.bottom {
+    bottom: 0;
+}
+
+.processing-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.processing-content {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    padding: 0 40px;
+}
+
+.processing-content h3 {
+    font-size: 0.9rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+.processing-progress-wrapper {
+    width: 100%;
+    height: 2px;
+    background: var(--border-subtle);
+    margin-bottom: 15px;
+    overflow: hidden;
+    position: relative;
+}
+
+.processing-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    background: var(--text-primary);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+}
+
+.processing-content p {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* --- Custom Modal --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-container {
+    background: var(--bg-color);
+    width: 100%;
+    max-width: 400px;
+    padding: 40px;
+    border-radius: 4px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    transform: translateY(20px);
+    transition: transform 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.modal-overlay.active .modal-container {
+    transform: translateY(0);
+}
+
+.modal-content h3 {
+    font-size: 1rem;
+    font-weight: 800;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.modal-content p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+}
+
+.modal-btn {
+    height: 40px;
+    padding: 0 25px;
+    border: none;
+    border-radius: 2px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.modal-btn.primary {
+    background: #ff4444;
+    color: #fff;
+}
+
+.modal-btn.primary:hover {
+    background: #cc0000;
+}
+
+.modal-btn.secondary {
+    background: var(--border-subtle);
+    color: var(--text-primary);
+}
+
+.modal-btn.secondary:hover {
+    background: var(--category-border);
 }
 
 /* --- Scroll Top Button --- */
