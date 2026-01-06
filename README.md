@@ -4,6 +4,8 @@ A sophisticated single-page web application for managing Chrome bookmarks with p
 
 ## ✨ Features
 
+🎬 **GSAP Preloader** - Sophisticated loading experience with split-panel exit animation  
+🎨 **Inter Tight Typography** - Premium font family with local loading for enhanced aesthetics  
 📅 **Date-Based Organization** - Files automatically organized by upload date (YYYY-MM-DD)  
 📋 **Upload History** - View all uploaded files with timestamps and file sizes  
 🔄 **Persistent Storage** - Upload multiple XML files that persist across browser sessions  
@@ -47,19 +49,36 @@ A sophisticated single-page web application for managing Chrome bookmarks with p
 ## 🎨 Design Features
 
 ### Awwwards-Style Interface
-- **Inter font** for modern, clean typography
+- **Inter Tight typography** with local font loading for premium appearance
 - **Minimal color palette** with neutral tones (#fafafa, #1a1a1a, #6b7280)
 - **Clean shadows** with subtle depth and layering
 - **WeTransfer-inspired aesthetics** with elegant spacing and layout
 - **Flat design elements** with contemporary button styling
 - **Responsive layout** that adapts to different screen sizes
 
+### Enhanced Typography
+- **Inter Tight font family** for modern, refined appearance
+- **Local font loading** with graceful fallback to system fonts
+- **Consistent typography** across all UI elements and components
+- **Improved readability** with optimized font weights and spacing
+- **Premium aesthetic** that enhances the overall design quality
+
+### Premium Preloader Experience
+- **Full-screen preloader** appears on initial page load only
+- **Horizontal loading bar** (7px height) positioned vertically centered
+- **Animated percentage counter** (000% to 100%) in top-right corner
+- **Split-panel exit animation** - top half moves up, bottom half moves down
+- **Smooth content reveal** with fade-in transition after preloader completion
+- **GSAP timeline-based** animations for optimal performance
+
 ### GSAP-Powered Animations
+- **Sophisticated preloader** with loading bar and percentage counter
+- **Split-panel exit animation** with smooth top/bottom panel transitions
 - **Smooth accordion transitions** with height-based animations
 - **Staggered entrance effects** for bookmark items
 - **Elegant hover animations** with slide and background transitions
 - **Counter animations** for statistics with scale effects
-- **Loading transitions** with fade and opacity changes
+- **Premium loading experience** with timeline-based animations
 - **Interactive feedback** with subtle transformations
 
 ### Accordion Organization
