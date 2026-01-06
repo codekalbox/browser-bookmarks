@@ -4,9 +4,11 @@ A sophisticated single-page web application for managing Chrome bookmarks with p
 
 ## ✨ Features
 
+📅 **Date-Based Organization** - Files automatically organized by upload date (YYYY-MM-DD)  
+📋 **Upload History** - View all uploaded files with timestamps and file sizes  
 🔄 **Persistent Storage** - Upload multiple XML files that persist across browser sessions  
 📁 **Multiple File Support** - Handle multiple Chrome bookmark exports simultaneously  
-🎯 **Smart Deduplication** - Automatically removes duplicate links across all files  
+🎯 **Smart Deduplication** - Automatically removes duplicate links across all files and dates  
 🌐 **Domain Simplification** - Keeps only main domain links (removes subpages)  
 📂 **Accordion Folders** - Collapsible folder organization with smooth GSAP animations  
 🎨 **Awwwards-Style Design** - Modern, minimal interface inspired by WeTransfer aesthetics  
@@ -91,30 +93,53 @@ A sophisticated single-page web application for managing Chrome bookmarks with p
 
 ## 📊 Data Structure
 
-The application stores data in localStorage using this structure:
+The application stores data in localStorage using this enhanced date-based structure:
 
 ```json
 {
-  "files": {
-    "fileId1": {
-      "name": "bookmarks_1_1_2024.html",
-      "uploadDate": "2024-01-01T12:00:00.000Z",
-      "size": 12345
+  "filesByDate": {
+    "2026-01-06": {
+      "files": {
+        "fileId1": {
+          "name": "bookmarks_1_6_2026.html",
+          "uploadDate": "2026-01-06T12:00:00.000Z",
+          "size": 12345
+        }
+      },
+      "folders": {
+        "Bookmarks Bar": {
+          "https://github.com": {
+            "url": "https://github.com",
+            "text": "GitHub",
+            "icon": "data:image/png;base64,...",
+            "domain": "https://github.com",
+            "sourceFile": "fileId1",
+            "uploadDate": "2026-01-06"
+          }
+        }
+      }
     }
   },
-  "folders": {
+  "allFolders": {
     "Bookmarks Bar": {
       "https://github.com": {
         "url": "https://github.com",
         "text": "GitHub",
         "icon": "data:image/png;base64,...",
         "domain": "https://github.com",
-        "sourceFile": "fileId1"
+        "sourceFile": "fileId1",
+        "uploadDate": "2026-01-06"
       }
     }
   }
 }
 ```
+
+### Data Architecture Benefits
+- **Date-Based Organization**: Files are grouped by upload date for easy management
+- **Unified Display**: `allFolders` provides a consolidated view across all dates
+- **Smart Deduplication**: Links are deduplicated both within dates and across dates
+- **Metadata Preservation**: Each link maintains source file and upload date information
 
 ## 🌐 Browser Compatibility
 
