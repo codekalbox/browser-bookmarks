@@ -1,6 +1,6 @@
 # 📚 Chrome Bookmarks Manager
 
-A sophisticated single-page web application for managing Chrome bookmarks with persistent storage, accordion interface, and Apple-inspired design.
+A sophisticated single-page web application for managing Chrome bookmarks with persistent storage, accordion interface, and modern Awwwards-style design powered by GSAP animations.
 
 ## ✨ Features
 
@@ -8,10 +8,11 @@ A sophisticated single-page web application for managing Chrome bookmarks with p
 📁 **Multiple File Support** - Handle multiple Chrome bookmark exports simultaneously  
 🎯 **Smart Deduplication** - Automatically removes duplicate links across all files  
 🌐 **Domain Simplification** - Keeps only main domain links (removes subpages)  
-📂 **Accordion Folders** - Collapsible folder organization with smooth animations  
-🍎 **Apple-Style Design** - Clean, modern interface with subtle shadows and gradients  
+📂 **Accordion Folders** - Collapsible folder organization with smooth GSAP animations  
+🎨 **Awwwards-Style Design** - Modern, minimal interface inspired by WeTransfer aesthetics  
+✨ **GSAP Animations** - Smooth, professional animations for all interactions  
 🖼️ **Bookmark Icons** - Displays favicon icons using the ICON attribute  
-📊 **Live Statistics** - Real-time counts of files, folders, and bookmarks  
+📊 **Animated Statistics** - Real-time counts with smooth counter animations  
 💾 **Offline Ready** - Works completely offline with localStorage persistence  
 📱 **Responsive Design** - Optimized for desktop and mobile devices  
 
@@ -43,19 +44,27 @@ A sophisticated single-page web application for managing Chrome bookmarks with p
 
 ## 🎨 Design Features
 
-### Apple-Inspired Interface
-- **SF Pro Display font** for authentic Apple typography
-- **Gradient backgrounds** with subtle color transitions
-- **Glassmorphism effects** with backdrop blur and transparency
-- **Smooth animations** for accordion interactions and hover states
-- **Rounded corners** and soft shadows throughout
+### Awwwards-Style Interface
+- **Inter font** for modern, clean typography
+- **Minimal color palette** with neutral tones (#fafafa, #1a1a1a, #6b7280)
+- **Clean shadows** with subtle depth and layering
+- **WeTransfer-inspired aesthetics** with elegant spacing and layout
+- **Flat design elements** with contemporary button styling
 - **Responsive layout** that adapts to different screen sizes
 
+### GSAP-Powered Animations
+- **Smooth accordion transitions** with height-based animations
+- **Staggered entrance effects** for bookmark items
+- **Elegant hover animations** with slide and background transitions
+- **Counter animations** for statistics with scale effects
+- **Loading transitions** with fade and opacity changes
+- **Interactive feedback** with subtle transformations
+
 ### Accordion Organization
-- **Collapsible folders** with smooth expand/collapse animations
-- **Visual folder icons** with gradient backgrounds
+- **Collapsible folders** with smooth GSAP expand/collapse animations
+- **Visual folder icons** with clean, minimal styling
 - **Bookmark counters** showing items per folder
-- **Hover effects** with subtle transformations
+- **Hover effects** with smooth background transitions
 - **Clean typography** with proper spacing and hierarchy
 
 ## 🔧 Technical Implementation
@@ -72,11 +81,13 @@ A sophisticated single-page web application for managing Chrome bookmarks with p
 - **Intelligent URL prioritization** - Prefers root domain URLs over subpages
 - **Folder-based organization** - Maintains original Chrome folder structure
 
-### Performance Optimizations
+### Animation & Performance Optimizations
+- **GSAP integration** - Professional-grade animations with optimal performance
+- **Hardware acceleration** - Smooth 60fps animations using GPU
 - **Lazy icon loading** - Icons load after DOM rendering for better performance
-- **Efficient DOM updates** - Minimal reflows and repaints
+- **Efficient DOM updates** - Minimal reflows and repaints with GSAP
 - **Error handling** - Graceful fallbacks for failed icon loads
-- **Memory management** - Efficient data structures and cleanup
+- **Memory management** - Efficient data structures and animation cleanup
 
 ## 📊 Data Structure
 
@@ -117,7 +128,8 @@ The application stores data in localStorage using this structure:
 - localStorage support
 - ES6+ JavaScript features
 - CSS Grid and Flexbox
-- CSS backdrop-filter (for glassmorphism effects)
+- GSAP library (loaded via CDN)
+- Modern browser animation support
 
 ## 📱 Mobile Experience
 
@@ -144,9 +156,10 @@ The application is fully responsive and includes:
 ```
 
 ### Key Components
-- **BookmarksManager class** - Core application logic
+- **BookmarksManager class** - Core application logic with animation integration
 - **Storage layer** - localStorage abstraction
-- **UI components** - Accordion, file upload, statistics
+- **UI components** - Accordion, file upload, statistics with GSAP animations
+- **Animation system** - GSAP-powered smooth transitions and interactions
 - **Bookmark processing** - Parsing, deduplication, organization
 
 ## 🎯 Use Cases
@@ -174,4 +187,3 @@ Free to use and modify as needed. No restrictions.
 ---
 
 **Ready to organize your bookmarks?** Just open `index.html` and start uploading! 🚀
-
