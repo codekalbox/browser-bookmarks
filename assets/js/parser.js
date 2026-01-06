@@ -107,22 +107,16 @@ class BookmarkParser {
     }
 
     /**
-     * Normalizes and Deduplicates bookmarks
-     * @param {Array} bookmarks 
+     * Categorizes bookmarks by folder
      */
     static process(bookmarks) {
-        const seen = new Set();
         const categories = {};
 
         bookmarks.forEach(book => {
             const normalizedUrl = this._normalizeUrl(book.url);
 
-            // Deduplicate based on normalized URL
-            if (seen.has(normalizedUrl)) return;
-            seen.add(normalizedUrl);
-
-            // 1. Normalize Category Name
-            const category = this._normalizeCategory(book.folder || 'Uncategorized');
+            // 1. Use raw category name (no more merging)
+            const category = (book.folder || 'Uncategorized').trim();
 
             if (!categories[category]) categories[category] = [];
 
@@ -135,57 +129,7 @@ class BookmarkParser {
         return categories;
     }
 
-    /**
-     * Intelligent Category Merging
-     * Handles: Modernaweb Studio / MWS, Blogs / Blog, OceanWP / OWP
-     */
-    static _normalizeCategory(name) {
-        if (!name) return 'Uncategorized';
 
-        let n = name.trim();
-
-        // 1. Remove trailing special chars (dots, etc)
-        n = n.replace(/[.\-_]+$/, '');
-
-        // 2. Mapping Dictionary (Aliases)
-        const MAP = {
-            'mws': 'Modernaweb Studio',
-            'modernaweb stodio': 'Modernaweb Studio',
-            'modernaweb studio': 'Modernaweb Studio',
-            'owp': 'OceanWP',
-            'oceanwp': 'OceanWP',
-            'ocean ecommerce': 'OceanWP',
-            'shop x': 'Online Shop',
-            'online shop mockup': 'Online Shop',
-            'shop': 'Online Shop',
-            'blog': 'Blogs',
-            'blogs': 'Blogs',
-            'new blog': 'Blogs',
-            'iconz': 'Inspiration',
-            'mockups': 'Inspiration',
-            'trends + typography': 'Inspiration',
-            'ds': 'Design',
-            'dsgn': 'Design',
-            'temp 0': 'Temporary',
-            'temp 1': 'Temporary',
-            'temp 2': 'Temporary',
-            'temp 3': 'Temporary',
-            'check later - - -': 'Check Later'
-        };
-
-        const key = n.toLowerCase();
-        if (MAP[key]) return MAP[key];
-
-        // 3. Simple Plural Handling
-        if (key.endsWith('s')) {
-            const singular = key.substring(0, key.length - 1);
-            // Check if MAP has singular or if we should just consolidate to plural
-            // For now, let's keep it simple: if it's "Tools" vs "Tool", consolidate
-        }
-
-        // Return trimmed, but keep original case if no map found (or capitalized)
-        return n;
-    }
 
     /**
      * URL Normalization Logic
