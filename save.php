@@ -1,23 +1,36 @@
 <?php
 /**
- * Simple PHP script to save uploaded bookmark files to the /uploads/ folder.
- * Designed for Laragon/Localhost usage.
+ * Simple PHP script to save/delete uploaded bookmark files.
  */
 
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $uploadsDir = __DIR__ . '/uploads';
-    if (!is_dir($uploadsDir)) {
-        mkdir($uploadsDir, 0777, true);
-    }
+$uploadsDir = __DIR__ . '/uploads';
+if (!is_dir($uploadsDir)) {
+    mkdir($uploadsDir, 0777, true);
+}
 
+// ACTION: DELETE ALL
+if (isset($_GET['action']) && $_GET['action'] === 'clear') {
+    $files = glob($uploadsDir . '/*');
+    foreach ($files as $file) {
+        if (is_file($file)) {
+            unlink($file);
+        }
+    }
+    echo json_encode(['status' => 'success', 'message' => 'Uploads folder cleared']);
+    exit;
+}
+
+// ACTION: UPLOAD
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!empty($_FILES['files'])) {
         foreach ($_FILES['files']['name'] as $key => $name) {
             $tmpPath = $_FILES['files']['tmp_name'][$key];
             if ($tmpPath) {
-                $uniqueName = date('Y-m-d_H-i-s') . '_' . basename($name);
-                move_uploaded_file($tmpPath, $uploadsDir . '/' . $uniqueName);
+                // Keep original names for clarity, or add timestamp prefix
+                $safeName = basename($name);
+                move_uploaded_file($tmpPath, $uploadsDir . '/' . $safeName);
             }
         }
         echo json_encode(['status' => 'success', 'message' => 'Files saved to /uploads/']);

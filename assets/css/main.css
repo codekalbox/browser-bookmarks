@@ -11,6 +11,14 @@
     font-display: swap;
 }
 
+@font-face {
+    font-family: 'Vazir';
+    src: local('Vazir'), url('../fonts/Vazir.woff2') format('woff2'), url('../fonts/Vazir.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     --bg-color: #ffffff;
     --text-primary: #000000;
@@ -21,8 +29,8 @@
     --panel-height: 50vh;
     --header-height: 70px;
 
-    /* STRICT: Inter Tight Only */
-    --font-main: 'Inter Tight', sans-serif;
+    /* Premium Local Stack: Inter Tight -> Vazir -> serif */
+    --font-main: 'Inter Tight', 'Vazir', serif;
 
     /* GSAP Animation Timing */
     --ease-smooth: power4.out;
@@ -35,8 +43,15 @@
     -webkit-font-smoothing: antialiased;
 }
 
-body {
+body,
+button,
+input,
+select,
+textarea {
     font-family: var(--font-main);
+}
+
+body {
     background-color: var(--bg-color);
     color: var(--text-primary);
     line-height: 1.4;
@@ -105,6 +120,25 @@ body.loading {
     text-align: center;
 }
 
+.progress-wrapper {
+    width: 100%;
+    height: 7px;
+    background: rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    transform: scaleX(0);
+    transform-origin: left;
+}
+
 .percentage-counter {
     position: fixed;
     top: 40px;
@@ -114,6 +148,53 @@ body.loading {
     color: #ffffff;
     font-variant-numeric: tabular-nums;
     z-index: 10000;
+}
+
+/* --- Floating Side Panel (TOC) --- */
+.side-panel {
+    position: fixed;
+    right: -300px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 260px;
+    background: #fff;
+    border: 1px solid #000;
+    z-index: 900;
+    padding: 30px;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.05);
+}
+
+.side-panel-title {
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.toc-list {
+    list-style: none;
+}
+
+.toc-item {
+    margin-bottom: 12px;
+}
+
+.toc-link {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: color 0.3s ease;
+    cursor: pointer;
+}
+
+.toc-link:hover {
+    color: #000;
 }
 
 /* --- Header & Premium Buttons --- */
