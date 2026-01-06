@@ -610,18 +610,21 @@
                 // Create GSAP timeline for smooth loading animation
                 const tl = gsap.timeline();
                 
+                // Create a counter object to track percentage
+                const counter = { value: 0 };
+                
                 // Animate loading bar and percentage counter simultaneously
                 tl.to(this.loadingBar, {
                     width: '100%',
                     duration: 2.5,
                     ease: 'power2.out'
                 })
-                .to({ percentage: 0 }, {
-                    percentage: 100,
+                .to(counter, {
+                    value: 100,
                     duration: 2.5,
                     ease: 'power2.out',
                     onUpdate: () => {
-                        const current = Math.round(gsap.getProperty(tl.targets()[1], 'percentage'));
+                        const current = Math.round(counter.value);
                         this.percentageCounter.textContent = current.toString().padStart(3, '0') + '%';
                     }
                 }, 0) // Start at the same time as loading bar
@@ -926,20 +929,38 @@
             }
 
             rebuildAllFolders() {
+                // Initialize allFolders
                 this.data.allFolders = {};
+                
+                // Ensure filesByDate exists and is an object
+                if (!this.data.filesByDate || typeof this.data.filesByDate !== 'object') {
+                    this.data.filesByDate = {};
+                    return;
+                }
                 
                 // Combine folders from all dates
                 Object.keys(this.data.filesByDate).forEach(date => {
                     const dateData = this.data.filesByDate[date];
+                    
+                    // Ensure dateData and dateData.folders exist
+                    if (!dateData || !dateData.folders || typeof dateData.folders !== 'object') {
+                        return;
+                    }
                     
                     Object.keys(dateData.folders).forEach(folderName => {
                         if (!this.data.allFolders[folderName]) {
                             this.data.allFolders[folderName] = {};
                         }
                         
+                        // Ensure folder data exists
+                        const folderData = dateData.folders[folderName];
+                        if (!folderData || typeof folderData !== 'object') {
+                            return;
+                        }
+                        
                         // Merge links, preferring shorter URLs (main domains)
-                        Object.keys(dateData.folders[folderName]).forEach(domain => {
-                            const link = dateData.folders[folderName][domain];
+                        Object.keys(folderData).forEach(domain => {
+                            const link = folderData[domain];
                             if (!this.data.allFolders[folderName][domain] || 
                                 link.url.length < this.data.allFolders[folderName][domain].url.length) {
                                 this.data.allFolders[folderName][domain] = link;
@@ -1334,7 +1355,11 @@
 
         // Global functions
         function clearAllData() {
-            bookmarksManager.clearAll();
+            if (window.bookmarksManager) {
+                window.bookmarksManager.clearAll();
+            } else {
+                console.warn('BookmarksManager not yet initialized');
+            }
         }
 
         // Initialize the preloader first
