@@ -610,18 +610,21 @@
                 // Create GSAP timeline for smooth loading animation
                 const tl = gsap.timeline();
                 
+                // Create a counter object to track percentage
+                const counter = { value: 0 };
+                
                 // Animate loading bar and percentage counter simultaneously
                 tl.to(this.loadingBar, {
                     width: '100%',
                     duration: 2.5,
                     ease: 'power2.out'
                 })
-                .to({ percentage: 0 }, {
-                    percentage: 100,
+                .to(counter, {
+                    value: 100,
                     duration: 2.5,
                     ease: 'power2.out',
                     onUpdate: () => {
-                        const current = Math.round(gsap.getProperty(tl.targets()[1], 'percentage'));
+                        const current = Math.round(counter.value);
                         this.percentageCounter.textContent = current.toString().padStart(3, '0') + '%';
                     }
                 }, 0) // Start at the same time as loading bar
@@ -902,6 +905,12 @@
             processBookmarks(bookmarks, fileId, uploadDate) {
                 const dateData = this.data.filesByDate[uploadDate];
                 
+                // Ensure dateData exists and has folders property
+                if (!dateData || !dateData.folders) {
+                    console.error('Invalid date data structure for:', uploadDate);
+                    return;
+                }
+                
                 Object.keys(bookmarks).forEach(folderName => {
                     if (!dateData.folders[folderName]) {
                         dateData.folders[folderName] = {};
@@ -926,20 +935,38 @@
             }
 
             rebuildAllFolders() {
+                // Initialize allFolders
                 this.data.allFolders = {};
+                
+                // Ensure filesByDate exists and is an object
+                if (!this.data.filesByDate || typeof this.data.filesByDate !== 'object') {
+                    this.data.filesByDate = {};
+                    return;
+                }
                 
                 // Combine folders from all dates
                 Object.keys(this.data.filesByDate).forEach(date => {
                     const dateData = this.data.filesByDate[date];
+                    
+                    // Ensure dateData and dateData.folders exist
+                    if (!dateData || !dateData.folders || typeof dateData.folders !== 'object') {
+                        return;
+                    }
                     
                     Object.keys(dateData.folders).forEach(folderName => {
                         if (!this.data.allFolders[folderName]) {
                             this.data.allFolders[folderName] = {};
                         }
                         
+                        // Ensure folder data exists
+                        const folderData = dateData.folders[folderName];
+                        if (!folderData || typeof folderData !== 'object') {
+                            return;
+                        }
+                        
                         // Merge links, preferring shorter URLs (main domains)
-                        Object.keys(dateData.folders[folderName]).forEach(domain => {
-                            const link = dateData.folders[folderName][domain];
+                        Object.keys(folderData).forEach(domain => {
+                            const link = folderData[domain];
                             if (!this.data.allFolders[folderName][domain] || 
                                 link.url.length < this.data.allFolders[folderName][domain].url.length) {
                                 this.data.allFolders[folderName][domain] = link;
@@ -1101,44 +1128,66 @@
                 const bookmarkLinks = document.querySelectorAll('.bookmark-link');
                 
                 bookmarkLinks.forEach(link => {
-                    link.addEventListener('mouseenter', () => {
+                    // Remove existing listeners to prevent duplicates
+                    if (link._hoverEnter) {
+                        link.removeEventListener('mouseenter', link._hoverEnter);
+                        link.removeEventListener('mouseleave', link._hoverLeave);
+                    }
+                    
+                    // Create new event handlers and store references
+                    link._hoverEnter = () => {
                         gsap.to(link, {
                             x: 8,
                             backgroundColor: '#f3f4f6',
                             duration: 0.3,
                             ease: 'power2.out'
                         });
-                    });
+                    };
                     
-                    link.addEventListener('mouseleave', () => {
+                    link._hoverLeave = () => {
                         gsap.to(link, {
                             x: 0,
                             backgroundColor: '#fafafa',
                             duration: 0.3,
                             ease: 'power2.out'
                         });
-                    });
+                    };
+                    
+                    // Add new listeners
+                    link.addEventListener('mouseenter', link._hoverEnter);
+                    link.addEventListener('mouseleave', link._hoverLeave);
                 });
 
                 // Add hover animations to accordion headers
                 const accordionHeaders = document.querySelectorAll('.accordion-header');
                 
                 accordionHeaders.forEach(header => {
-                    header.addEventListener('mouseenter', () => {
+                    // Remove existing listeners
+                    if (header._hoverEnter) {
+                        header.removeEventListener('mouseenter', header._hoverEnter);
+                        header.removeEventListener('mouseleave', header._hoverLeave);
+                    }
+                    
+                    // Create and store new handlers
+                    header._hoverEnter = () => {
                         gsap.to(header, {
                             backgroundColor: '#f9fafb',
                             duration: 0.3,
                             ease: 'power2.out'
                         });
-                    });
+                    };
                     
-                    header.addEventListener('mouseleave', () => {
+                    header._hoverLeave = () => {
                         gsap.to(header, {
                             backgroundColor: '#ffffff',
                             duration: 0.3,
                             ease: 'power2.out'
                         });
-                    });
+                    };
+                    
+                    // Add new listeners
+                    header.addEventListener('mouseenter', header._hoverEnter);
+                    header.addEventListener('mouseleave', header._hoverLeave);
                 });
             }
 
@@ -1334,7 +1383,11 @@
 
         // Global functions
         function clearAllData() {
-            bookmarksManager.clearAll();
+            if (window.bookmarksManager) {
+                window.bookmarksManager.clearAll();
+            } else {
+                console.warn('BookmarksManager not yet initialized');
+            }
         }
 
         // Initialize the preloader first
