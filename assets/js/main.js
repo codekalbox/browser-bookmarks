@@ -26,7 +26,9 @@ function initPreloader() {
         onUpdate: () => {
             const formatted = Math.floor(status.val).toString().padStart(3, '0');
             counter.innerText = `${formatted}%`;
-            gsap.set(progressBar, { scaleX: status.val / 100 });
+            if (progressBar) {
+                progressBar.style.transform = `scaleX(${status.val / 100})`;
+            }
         }
     });
 
@@ -127,22 +129,33 @@ function loadFromDB() {
 function renderBookmarks(categories) {
     const container = document.getElementById('content-area');
     const linkCountEl = document.getElementById('link-count');
+    const tocList = document.getElementById('toc-list');
+    const sidePanel = document.getElementById('side-panel');
+    const tocToggle = document.getElementById('toc-toggle');
 
-    if (Object.keys(categories).length === 0) {
+    if (!categories || Object.keys(categories).length === 0) {
         document.body.classList.remove('has-content');
+        tocToggle.style.display = 'none';
         return;
     }
 
     document.body.classList.add('has-content');
+    tocToggle.style.display = 'inline-flex';
     container.innerHTML = '';
+    tocList.innerHTML = '';
     let totalLinks = 0;
 
-    Object.keys(categories).forEach(catName => {
+    const sortedKeys = Object.keys(categories).sort();
+
+    sortedKeys.forEach((catName, index) => {
         const links = categories[catName];
         totalLinks += links.length;
 
+        // 1. Create Section
+        const sectionId = `category-${index}`;
         const section = document.createElement('section');
         section.className = 'category-section';
+        section.id = sectionId;
 
         const title = document.createElement('h2');
         title.className = 'category-title';
@@ -176,7 +189,13 @@ function renderBookmarks(categories) {
         section.appendChild(grid);
         container.appendChild(section);
 
-        // ANIMATION: Animate the whole category section instead of individual links
+        // 2. Add to TOC
+        const tocItem = document.createElement('li');
+        tocItem.className = 'toc-item';
+        tocItem.innerHTML = `<span class="toc-link" data-target="${sectionId}">${catName}</span>`;
+        tocList.appendChild(tocItem);
+
+        // GSAP Category Entrance
         gsap.from(section, {
             y: 40,
             opacity: 0,
@@ -189,7 +208,46 @@ function renderBookmarks(categories) {
         });
     });
 
+    // TOC Click handling
+    tocList.querySelectorAll('.toc-link').forEach(link => {
+        link.onclick = (e) => {
+            const targetId = link.getAttribute('data-target');
+            const targetEl = document.getElementById(targetId);
+
+            // Close panel first
+            toggleTOC(false);
+
+            if (targetEl) {
+                window.scrollTo({
+                    top: targetEl.offsetTop - 100,
+                    behavior: 'smooth'
+                });
+            }
+        };
+    });
+
     linkCountEl.innerText = `${totalLinks} Links`;
+
+    // Always reset to top after high-volume render
+    window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+/**
+ * Off-Canvas Logic
+ */
+function toggleTOC(open) {
+    const sidePanel = document.getElementById('side-panel');
+    const overlay = document.getElementById('side-panel-overlay');
+
+    if (open) {
+        overlay.classList.add('active');
+        gsap.to(sidePanel, { right: 0, duration: 0.8, ease: "power4.out" });
+        document.body.style.overflow = 'hidden';
+    } else {
+        overlay.classList.remove('active');
+        gsap.to(sidePanel, { right: -400, duration: 0.6, ease: "power4.in" });
+        document.body.style.overflow = '';
+    }
 }
 
 /**
@@ -200,28 +258,41 @@ function initEvents() {
     const dropZone = document.getElementById('content-area');
     const clearBtn = document.getElementById('clear-data');
     const uploadBtn = document.getElementById('upload-trigger');
+    const tocToggle = document.getElementById('toc-toggle');
+    const tocClose = document.getElementById('toc-close');
+    const overlay = document.getElementById('side-panel-overlay');
 
-    // 1. File Upload - Better trigger
-    uploadBtn.onclick = (e) => {
-        fileInput.click();
-    };
+    // 1. TOC Toggle
+    tocToggle.onclick = () => toggleTOC(true);
+    tocClose.onclick = () => toggleTOC(false);
+    overlay.onclick = () => toggleTOC(false);
 
+    // 2. File Upload
+    uploadBtn.onclick = () => fileInput.click();
     fileInput.onchange = (e) => {
-        if (e.target.files.length > 0) {
-            handleFiles(e.target.files);
-        }
+        if (e.target.files.length > 0) handleFiles(e.target.files);
     };
 
-    // 2. Clear Data
+    // 3. Clear Data
     clearBtn.onclick = async () => {
-        if (confirm("Clear all persistent bookmarks?")) {
-            const tx = db.transaction('links', 'readwrite');
-            await tx.objectStore('links').clear();
-            location.reload();
+        if (confirm("Are you sure? This will delete all saved database links AND physical files in /uploads/.")) {
+            try {
+                const tx = db.transaction('links', 'readwrite');
+                const store = tx.objectStore('links');
+                const clearReq = store.clear();
+
+                clearReq.onsuccess = async () => {
+                    await fetch('save.php?action=clear');
+                    location.reload();
+                };
+            } catch (err) {
+                console.error("Clear failed:", err);
+                location.reload();
+            }
         }
     };
 
-    // 3. Drag & Drop Feedback
+    // 4. Drag & Drop Feedback
     window.addEventListener('dragover', (e) => e.preventDefault());
     window.addEventListener('drop', (e) => e.preventDefault());
 
@@ -245,7 +316,7 @@ function initEvents() {
         handleFiles(e.dataTransfer.files);
     });
 
-    // 4. Hover Effects
+    // 5. Hover Effects
     dropZone.addEventListener('mouseover', (e) => {
         const card = e.target.closest('.bookmark-card');
         if (card) {
@@ -290,7 +361,7 @@ async function handleFiles(fileList) {
     }
 
     if (allBookmarks.length > 0) {
-        // Load existing links first to merge
+        // Load existing links first to merge (Append mode)
         const existing = await loadFromDB();
         const merged = [...existing, ...allBookmarks];
 

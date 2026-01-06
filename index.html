@@ -45,6 +45,7 @@
 
                 <div class="header-actions">
                     <div class="stats" id="link-count">0 Links</div>
+                    <button id="toc-toggle" class="secondary-btn">Index</button>
                     <button id="clear-data" class="secondary-btn">Clear All</button>
                     <div id="upload-trigger" class="upload-btn">
                         <span>Import Links</span>
@@ -65,8 +66,12 @@
         </section>
 
         <!-- Floating Side Panel (TOC) -->
+        <div id="side-panel-overlay" class="side-panel-overlay"></div>
         <aside id="side-panel" class="side-panel">
-            <h3 class="side-panel-title">Navigate</h3>
+            <div class="side-panel-header">
+                <h3 class="side-panel-title">Navigate</h3>
+                <button id="toc-close" class="close-btn">&times;</button>
+            </div>
             <ul id="toc-list" class="toc-list">
                 <!-- Links injected here -->
             </ul>

@@ -150,51 +150,112 @@ body.loading {
     z-index: 10000;
 }
 
-/* --- Floating Side Panel (TOC) --- */
+/* --- Off-Canvas Side Panel (TOC) --- */
+.side-panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 1999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.5s ease;
+}
+
+.side-panel-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
 .side-panel {
     position: fixed;
-    right: -300px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 260px;
+    right: -400px;
+    top: 0;
+    width: 380px;
+    height: 100vh;
     background: #fff;
-    border: 1px solid #000;
-    z-index: 900;
-    padding: 30px;
-    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.05);
+    border-left: 1px solid #000;
+    z-index: 2000;
+    padding: 60px 40px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -20px 0 60px rgba(0, 0, 0, 0.1);
+}
+
+.side-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #000;
 }
 
 .side-panel-title {
-    font-size: 0.75rem;
-    font-weight: 900;
+    font-size: 0.9rem;
+    font-weight: 950;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
+    letter-spacing: 0.25em;
+    margin: 0;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    font-weight: 300;
+    cursor: pointer;
+    line-height: 1;
+    color: #000;
+    transition: transform 0.3s ease;
+}
+
+.close-btn:hover {
+    transform: rotate(90deg);
 }
 
 .toc-list {
     list-style: none;
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 15px;
+}
+
+/* Custom Scrollbar for TOC */
+.toc-list::-webkit-scrollbar {
+    width: 2px;
+}
+
+.toc-list::-webkit-scrollbar-thumb {
+    background: #000;
 }
 
 .toc-item {
-    margin-bottom: 12px;
+    margin-bottom: 18px;
 }
 
 .toc-link {
-    font-size: 0.65rem;
-    font-weight: 700;
+    font-size: 0.7rem;
+    font-weight: 800;
     text-decoration: none;
-    color: #666;
+    color: #888;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    transition: color 0.3s ease;
+    letter-spacing: 0.12em;
+    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
     cursor: pointer;
+    display: block;
 }
 
 .toc-link:hover {
     color: #000;
+    transform: translateX(8px);
+}
+
+#toc-toggle {
+    display: none;
 }
 
 /* --- Header & Premium Buttons --- */
