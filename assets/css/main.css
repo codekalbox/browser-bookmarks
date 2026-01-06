@@ -435,6 +435,99 @@ body.loading {
     margin: 0;
 }
 
+/* --- Search UI --- */
+.search-box {
+    position: relative;
+    max-width: 400px;
+    width: 100%;
+    margin: 0 40px;
+    flex-grow: 1;
+}
+
+.search-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 10px 35px 10px 0;
+    font-family: var(--font-main);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    transition: border-color 0.3s ease;
+}
+
+#search-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 10px 35px 10px 0;
+    font-family: var(--font-main);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+    border-radius: 0;
+}
+
+#search-input:focus {
+    outline: none;
+    border-bottom-color: var(--text-primary);
+}
+
+.search-icon {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--text-secondary);
+    pointer-events: none;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+#search-input:focus+.search-icon {
+    opacity: 1;
+    color: var(--text-primary);
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+    padding: 0;
+}
+
+.search-clear-btn:hover {
+    opacity: 1;
+}
+
+.search-clear-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.search-box.has-text .search-icon {
+    display: none;
+}
+
+.search-box.has-text .search-clear-btn {
+    display: flex;
+}
+
 .header-actions {
     display: flex;
     align-items: center;
@@ -533,7 +626,7 @@ body:not(.has-content) .section-container {
 /* --- 8 Column Grid Architecture --- */
 .bookmarks-grid {
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     /* 8 Links per row */
     gap: 12px;
 }
@@ -744,19 +837,19 @@ body:not(.has-content) .section-container {
 /* --- Responsiveness --- */
 @media (max-width: 1800px) {
     .bookmarks-grid {
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(6, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 1500px) {
     .bookmarks-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 1100px) {
     .bookmarks-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .section-container {
@@ -766,7 +859,7 @@ body:not(.has-content) .section-container {
 
 @media (max-width: 850px) {
     .bookmarks-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .category-title {

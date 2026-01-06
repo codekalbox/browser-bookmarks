@@ -43,15 +43,32 @@
                     <h1>Bookmarks</h1>
                 </div>
 
+                <div class="search-box" id="search-container">
+                    <input type="text" id="search-input" placeholder="Search curated library..." autocomplete="off">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <button id="search-clear" class="search-clear-btn" title="Clear Search">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
                 <div class="header-actions">
                     <div class="stats" id="link-count">0 Links</div>
                     <button id="theme-toggle" class="theme-btn" title="Toggle Theme">
                         <span id="theme-icon">🌙</span>
                     </button>
                     <button id="toc-toggle" class="secondary-btn">Index</button>
+                    <button id="export-data" class="secondary-btn">Export</button>
                     <button id="clear-data" class="secondary-btn">Clear All</button>
                     <div id="upload-trigger" class="upload-btn">
-                        <span>Import Links</span>
+                        <span>Import</span>
                     </div>
                     <input type="file" id="file-upload" multiple accept=".html,.xml,.json" hidden>
                 </div>

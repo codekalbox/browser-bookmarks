@@ -1,6 +1,12 @@
 /**
- * Theme & Mode Management
+ * Global State & Configuration
  */
+const state = {
+    db: null,
+    fullCategories: null, // Stores categorized data for fast searching
+    isSearching: false
+};
+
 function initTheme() {
     const theme = localStorage.getItem('curator-theme') || 'light';
     document.documentElement.setAttribute('data-theme', theme);
@@ -45,7 +51,7 @@ function initPreloader() {
 
     tl.to(status, {
         val: 100,
-        duration: 2,
+        duration: 1.5,
         ease: "power2.inOut",
         onUpdate: () => {
             const formatted = Math.floor(status.val).toString().padStart(3, '0');
@@ -53,6 +59,15 @@ function initPreloader() {
             if (progressBar) {
                 progressBar.style.transform = `scaleX(${status.val / 100})`;
             }
+        }
+    });
+
+    // Catch-up logic for tab switching
+    const startTime = Date.now();
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && tl.isActive()) {
+            const elapsed = (Date.now() - startTime) / 1000;
+            if (elapsed > 1.5) tl.progress(1);
         }
     });
 
@@ -153,7 +168,69 @@ async function removeBookmark(url) {
     const filtered = links.filter(l => l.url !== url);
     const processed = BookmarkParser.process(filtered);
     await saveToDB(filtered, processed);
+    state.fullCategories = processed;
     renderBookmarks(processed);
+}
+
+/**
+ * Filter Engine (Search)
+ */
+function searchBookmarks(query) {
+    if (!state.fullCategories) return;
+
+    const q = query.toLowerCase().trim();
+    if (q === "") {
+        state.isSearching = false;
+        renderBookmarks(state.fullCategories);
+        return;
+    }
+
+    state.isSearching = true;
+    const filtered = {};
+
+    for (const [catName, links] of Object.entries(state.fullCategories)) {
+        const matches = links.filter(l =>
+            l.title.toLowerCase().includes(q) ||
+            l.url.toLowerCase().includes(q) ||
+            catName.toLowerCase().includes(q)
+        );
+        if (matches.length > 0) {
+            filtered[catName] = matches;
+        }
+    }
+
+    renderBookmarks(filtered);
+}
+
+/**
+ * Browser-Friendly HTML Export
+ */
+async function exportBookmarks() {
+    if (!state.fullCategories) return;
+
+    let html = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Curated Bookmarks</TITLE>
+<H1>Bookmarks</H1>
+<DL><p>\n`;
+
+    for (const [cat, links] of Object.entries(state.fullCategories)) {
+        html += `    <DT><H3 ADD_DATE="${Math.floor(Date.now() / 1000)}" LAST_MODIFIED="0">${cat}</H3>\n    <DL><p>\n`;
+        links.forEach(l => {
+            const iconStr = (l.icon && l.icon.startsWith('data:')) ? ` ICON="${l.icon}"` : '';
+            html += `        <DT><A HREF="${l.url}" ADD_DATE="0"${iconStr}>${l.title}</A>\n`;
+        });
+        html += `    </DL><p>\n`;
+    }
+    html += `</DL><p>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bookmarks-export-${new Date().toISOString().split('T')[0]}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 /**
@@ -327,14 +404,42 @@ function initEvents() {
     const fileInput = document.getElementById('file-upload');
     const dropZone = document.getElementById('content-area');
     const clearBtn = document.getElementById('clear-data');
+    const exportBtn = document.getElementById('export-data');
     const uploadBtn = document.getElementById('upload-trigger');
     const tocToggle = document.getElementById('toc-toggle');
     const themeToggle = document.getElementById('theme-toggle');
     const tocClose = document.getElementById('toc-close');
     const overlay = document.getElementById('side-panel-overlay');
+    const searchInput = document.getElementById('search-input');
 
     // 0. Theme Toggle
     themeToggle.onclick = () => toggleTheme();
+
+    // 0.1 Search Logic
+    let searchTimeout;
+    const searchContainer = document.getElementById('search-container');
+    const searchClear = document.getElementById('search-clear');
+
+    searchInput.oninput = (e) => {
+        const val = e.target.value;
+        if (val.length > 0) {
+            searchContainer.classList.add('has-text');
+        } else {
+            searchContainer.classList.remove('has-text');
+        }
+
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            searchBookmarks(val);
+        }, 150);
+    };
+
+    searchClear.onclick = () => {
+        searchInput.value = '';
+        searchContainer.classList.remove('has-text');
+        searchBookmarks('');
+        searchInput.focus();
+    };
 
     // 1. TOC Toggle
     tocToggle.onclick = () => toggleTOC(true);
@@ -347,7 +452,7 @@ function initEvents() {
         if (e.target.files.length > 0) handleFiles(e.target.files);
     };
 
-    // 3. Clear Data
+    // 3. Clear Data & Export
     clearBtn.onclick = async () => {
         if (confirm("Are you sure? This will delete all saved database links AND physical files in /uploads/.")) {
             try {
@@ -357,6 +462,7 @@ function initEvents() {
 
                 tx.oncomplete = async () => {
                     await fetch('save.php?action=clear');
+                    state.fullCategories = null;
                     location.reload();
                 };
             } catch (err) {
@@ -365,6 +471,8 @@ function initEvents() {
             }
         }
     };
+
+    exportBtn.onclick = () => exportBookmarks();
 
     // 4. Drag & Drop Feedback
     window.addEventListener('dragover', (e) => e.preventDefault());
@@ -461,6 +569,7 @@ async function handleFiles(fileList) {
         Object.values(processed).forEach(list => flatLinks.push(...list));
 
         await saveToDB(flatLinks, processed);
+        state.fullCategories = processed;
         renderBookmarks(processed);
     }
 }
@@ -477,6 +586,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initDB();
         const { processed } = await loadFromDB();
         if (processed) {
+            state.fullCategories = processed;
             renderBookmarks(processed);
         }
     } catch (e) {
