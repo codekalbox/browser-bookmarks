@@ -1,0 +1,399 @@
+/*
+    Premium Bookmarks Design System
+    Focus: Typos, Grid, and GSAP Layout Containers
+*/
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('Inter Tight'), local('Inter-Tight'), url('../fonts/InterTight-VariableFont_wght.woff2') format('woff2');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    --bg-color: #ffffff;
+    --text-primary: #000000;
+    --text-secondary: #666666;
+    --accent-color: #000000;
+    --grid-gap: 24px;
+    --border-subtle: #eeeeee;
+    --panel-height: 50vh;
+    --header-height: 70px;
+
+    /* STRICT: Inter Tight Only */
+    --font-main: 'Inter Tight', sans-serif;
+
+    /* GSAP Animation Timing */
+    --ease-smooth: power4.out;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    line-height: 1.4;
+    overflow-x: hidden;
+    font-weight: 500;
+}
+
+/* --- Drag Feedback --- */
+.section-container {
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.section-container.drag-active {
+    background: #f9f9f9;
+    border: 2px dashed #000;
+    cursor: copy;
+}
+
+body.loading {
+    overflow: hidden;
+}
+
+/* --- Preloader --- */
+.preloader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    pointer-events: all;
+    /* Block interaction during load */
+}
+
+/* Added helper class to remove preloader from interaction flow */
+.preloader.completed {
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.preloader-panel {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 50.5%;
+    background: #000000;
+}
+
+.preloader-panel.top {
+    top: 0;
+}
+
+.preloader-panel.bottom {
+    bottom: 0;
+}
+
+.preloader-content {
+    position: relative;
+    z-index: 10;
+    width: 80%;
+    max-width: 600px;
+    text-align: center;
+}
+
+.percentage-counter {
+    position: fixed;
+    top: 40px;
+    right: 40px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+    z-index: 10000;
+}
+
+/* --- Header & Premium Buttons --- */
+.site-header {
+    height: 70px;
+    padding: 0 40px;
+    border-bottom: 1px solid #000;
+    background: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+}
+
+.header-inner {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-dot {
+    width: 8px;
+    height: 8px;
+    background: #000;
+    border-radius: 50%;
+}
+
+.logo h1 {
+    font-size: 0.9rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.stats {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #666;
+    padding: 6px 12px;
+    border: 1px solid #eee;
+    background: #fcfcfc;
+    border-radius: 20px;
+}
+
+.upload-btn,
+.secondary-btn {
+    height: 38px;
+    padding: 0 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 0;
+    /* Architectural sharp corners */
+    transition: all 0.2s ease;
+}
+
+.upload-btn {
+    background: #000;
+    color: #fff;
+    border: 1px solid #000;
+}
+
+.upload-btn:hover {
+    background: #333;
+}
+
+.secondary-btn {
+    background: transparent;
+    color: #000;
+    border: 1px solid #000;
+}
+
+.secondary-btn:hover {
+    background: #000;
+    color: #fff;
+}
+
+/* --- Content Areas --- */
+.section-container {
+    padding: 40px 60px;
+    min-height: calc(100vh - var(--header-height));
+}
+
+/* Initial viewport fit */
+body:not(.has-content) .section-container {
+    justify-content: center;
+    align-items: center;
+    height: calc(100vh - var(--header-height));
+    overflow: hidden;
+}
+
+.category-section {
+    margin-bottom: 120px;
+    /* Strong separation */
+    border-top: 1px solid #ddd;
+    padding-top: 40px;
+}
+
+.category-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin-bottom: 30px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #000;
+}
+
+/* --- 8 Column Grid Architecture --- */
+.bookmarks-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    /* 8 Links per row */
+    gap: 12px;
+}
+
+.bookmark-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    height: 140px;
+    /* Perfect tight box */
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    /* Prevent messy overflow */
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.bookmark-card:hover {
+    border-color: #000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* --- Icons & Images --- */
+.bookmark-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+}
+
+.bookmark-icon,
+.bookmark-icon-placeholder {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.bookmark-icon-placeholder {
+    background: #f5f5f5;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+}
+
+.bookmark-icon-placeholder::after {
+    content: '🔗';
+}
+
+/* --- Truncated Typography --- */
+.bookmark-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #1a1a1a;
+    width: 100%;
+    /* Titles are truncated in JS to 35 chars, but we add CSS safety */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+    /* Ensure long words don't break the box */
+}
+
+.bookmark-url {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: auto;
+}
+
+/* --- Empty state --- */
+body:not(.has-content) .section-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(100vh - var(--header-height));
+    overflow: hidden;
+}
+
+.empty-state {
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+    padding: 60px;
+    border: 2px solid #000;
+    background: #fff;
+}
+
+.empty-text h2 {
+    font-size: 1.2rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+}
+
+.empty-text p {
+    color: var(--text-secondary);
+}
+
+/* --- Footer --- */
+.site-footer {
+    padding: 40px;
+    border-top: 1px solid var(--border-subtle);
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+/* --- Responsiveness --- */
+@media (max-width: 1200px) {
+    .bookmarks-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .bookmarks-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .category-title {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .bookmarks-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .site-header {
+        padding: 0 20px;
+    }
+
+    .section-container {
+        padding: 60px 20px;
+    }
+}
