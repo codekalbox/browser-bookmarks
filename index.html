@@ -271,26 +271,22 @@
             margin-top: 30px;
         }
 
-        .accordion-item {
+        .category-section {
             background: #ffffff;
             border-radius: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 32px;
             overflow: hidden;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.04);
             border: 1px solid rgba(0, 0, 0, 0.06);
         }
 
-        .accordion-header {
-            padding: 24px 32px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .category-header {
+            padding: 24px 32px 16px 32px;
             background: #ffffff;
             border-bottom: 1px solid #f3f4f6;
         }
 
-        .accordion-title {
+        .category-title {
             font-size: 1.125rem;
             font-weight: 600;
             color: #1a1a1a;
@@ -312,7 +308,7 @@
             font-size: 12px;
         }
 
-        .accordion-count {
+        .category-count {
             background: #f3f4f6;
             color: #6b7280;
             padding: 4px 12px;
@@ -321,27 +317,29 @@
             font-weight: 500;
         }
 
-        .accordion-arrow {
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6b7280;
-            font-size: 12px;
+        .category-grid {
+            padding: 24px 32px 32px 32px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
         }
 
-        .accordion-content {
-            display: none;
-            overflow: hidden;
+        @media (min-width: 768px) {
+            .category-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
-        .accordion-item.active .accordion-content {
-            display: block;
+        @media (min-width: 1024px) {
+            .category-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
         }
 
-        .accordion-body {
-            padding: 0 32px 32px 32px;
+        @media (min-width: 1280px) {
+            .category-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
         }
 
         .bookmark-link {
@@ -512,7 +510,7 @@
                 justify-content: center;
             }
             
-            .accordion-title {
+            .category-title {
                 font-size: 1.1rem;
             }
             
@@ -538,7 +536,7 @@
         <div class="container">
         <div class="header">
             <h1>📚 Chrome Bookmarks Manager</h1>
-            <p>Upload and organize your Chrome bookmarks with persistent storage and beautiful accordion folders.</p>
+            <p>Upload and organize your Chrome bookmarks with persistent storage and smart categorization.</p>
             
             <div class="upload-section">
                 <div class="file-input-wrapper">
@@ -881,11 +879,13 @@
                     const text = anchor.textContent.trim();
                     
                     if (href) {
+                        const normalizedUrl = this.normalizeUrl(href);
                         links.push({
-                            url: href,
+                            url: normalizedUrl,
+                            originalUrl: href,
                             icon: icon,
                             text: text,
-                            domain: this.extractDomain(href)
+                            domain: this.extractDomain(normalizedUrl)
                         });
                     }
                 });
@@ -896,6 +896,49 @@
             extractDomain(url) {
                 try {
                     const urlObj = new URL(url);
+                    return urlObj.protocol + '//' + urlObj.hostname;
+                } catch (e) {
+                    return url;
+                }
+            }
+
+            normalizeUrl(url) {
+                try {
+                    const urlObj = new URL(url);
+                    
+                    // List of share-type services that should keep their full URLs
+                    const shareServices = [
+                        'docs.google.com',
+                        'drive.google.com',
+                        'sheets.google.com',
+                        'slides.google.com',
+                        'forms.google.com',
+                        'notion.so',
+                        'www.notion.so',
+                        'figma.com',
+                        'www.figma.com',
+                        'miro.com',
+                        'www.miro.com',
+                        'trello.com',
+                        'www.trello.com',
+                        'airtable.com',
+                        'www.airtable.com',
+                        'dropbox.com',
+                        'www.dropbox.com',
+                        'onedrive.live.com',
+                        'sharepoint.com'
+                    ];
+                    
+                    // Check if this is a share-type service
+                    const isShareService = shareServices.some(service => 
+                        urlObj.hostname === service || urlObj.hostname.endsWith('.' + service)
+                    );
+                    
+                    if (isShareService) {
+                        return url; // Keep full URL for share services
+                    }
+                    
+                    // For regular websites, return only the homepage
                     return urlObj.protocol + '//' + urlObj.hostname;
                 } catch (e) {
                     return url;
@@ -1025,19 +1068,16 @@
                     const folderId = this.sanitizeId(folderName);
                     
                     html += `
-                        <div class="accordion-item" id="folder-${folderId}">
-                            <div class="accordion-header" onclick="bookmarksManager.toggleAccordion('${folderId}')">
-                                <div class="accordion-title">
+                        <div class="category-section" id="folder-${folderId}">
+                            <div class="category-header">
+                                <div class="category-title">
                                     <div class="folder-icon">📁</div>
                                     <span>${this.escapeHtml(folderName)}</span>
-                                    <div class="accordion-count">${links.length}</div>
+                                    <div class="category-count">${links.length}</div>
                                 </div>
-                                <div class="accordion-arrow">▼</div>
                             </div>
-                            <div class="accordion-content">
-                                <div class="accordion-body">
-                                    ${this.renderLinks(links)}
-                                </div>
+                            <div class="category-grid">
+                                ${this.renderLinksGrid(links)}
                             </div>
                         </div>
                     `;
@@ -1045,8 +1085,8 @@
                 
                 container.innerHTML = html;
                 
-                // Animate accordion items
-                gsap.from('.accordion-item', {
+                // Animate category sections
+                gsap.from('.category-section', {
                     y: 20,
                     opacity: 0,
                     duration: 0.6,
@@ -1077,51 +1117,23 @@
                 `).join('');
             }
 
-            toggleAccordion(folderId) {
-                const item = document.getElementById(`folder-${folderId}`);
-                const content = item.querySelector('.accordion-content');
-                const arrow = item.querySelector('.accordion-arrow');
-                
-                if (item.classList.contains('active')) {
-                    // Close accordion
-                    gsap.to(content, {
-                        height: 0,
-                        duration: 0.4,
-                        ease: 'power2.inOut',
-                        onComplete: () => {
-                            content.style.display = 'none';
-                            item.classList.remove('active');
-                        }
-                    });
-                    
-                    gsap.to(arrow, {
-                        rotation: 0,
-                        duration: 0.3,
-                        ease: 'power2.out'
-                    });
-                } else {
-                    // Open accordion
-                    content.style.display = 'block';
-                    const height = content.scrollHeight;
-                    content.style.height = '0px';
-                    
-                    gsap.to(content, {
-                        height: height,
-                        duration: 0.4,
-                        ease: 'power2.inOut',
-                        onComplete: () => {
-                            content.style.height = 'auto';
-                            item.classList.add('active');
-                        }
-                    });
-                    
-                    gsap.to(arrow, {
-                        rotation: 180,
-                        duration: 0.3,
-                        ease: 'power2.out'
-                    });
-                }
+            renderLinksGrid(links) {
+                return links.map(link => `
+                    <a href="${this.escapeHtml(link.url)}" 
+                       class="bookmark-link" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       ${link.icon ? `data-icon="${this.escapeHtml(link.icon)}"` : ''}>
+                        <div class="bookmark-icon"></div>
+                        <div class="bookmark-content">
+                            <div class="bookmark-text">${this.escapeHtml(link.text || link.url)}</div>
+                            <div class="bookmark-url">${this.escapeHtml(link.domain)}</div>
+                        </div>
+                    </a>
+                `).join('');
             }
+
+
 
             addBookmarkAnimations() {
                 // Add hover animations to bookmark links
@@ -1158,37 +1170,7 @@
                     link.addEventListener('mouseleave', link._hoverLeave);
                 });
 
-                // Add hover animations to accordion headers
-                const accordionHeaders = document.querySelectorAll('.accordion-header');
-                
-                accordionHeaders.forEach(header => {
-                    // Remove existing listeners
-                    if (header._hoverEnter) {
-                        header.removeEventListener('mouseenter', header._hoverEnter);
-                        header.removeEventListener('mouseleave', header._hoverLeave);
-                    }
-                    
-                    // Create and store new handlers
-                    header._hoverEnter = () => {
-                        gsap.to(header, {
-                            backgroundColor: '#f9fafb',
-                            duration: 0.3,
-                            ease: 'power2.out'
-                        });
-                    };
-                    
-                    header._hoverLeave = () => {
-                        gsap.to(header, {
-                            backgroundColor: '#ffffff',
-                            duration: 0.3,
-                            ease: 'power2.out'
-                        });
-                    };
-                    
-                    // Add new listeners
-                    header.addEventListener('mouseenter', header._hoverEnter);
-                    header.addEventListener('mouseleave', header._hoverLeave);
-                });
+
             }
 
             applyIcons() {
@@ -1362,7 +1344,7 @@
             clearAll() {
                 if (confirm('Are you sure you want to clear all bookmarks data? This cannot be undone.')) {
                     // Animate out existing content
-                    gsap.to('.accordion-item', {
+                    gsap.to('.category-section', {
                         opacity: 0,
                         y: -20,
                         duration: 0.4,
