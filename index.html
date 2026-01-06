@@ -4,9 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chrome Bookmarks Manager</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <style>
+        /* Inter Tight Font - Local Loading */
+        /* Note: In production, replace with actual Inter Tight font files */
+        @font-face {
+            font-family: 'Inter Tight';
+            font-style: normal;
+            font-weight: 300;
+            font-display: swap;
+            src: local('Inter Tight Light'), local('Inter-TightLight'), 
+                 url('fonts/InterTight-Light.woff2') format('woff2'),
+                 url('fonts/InterTight-Light.woff') format('woff');
+        }
+        @font-face {
+            font-family: 'Inter Tight';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: local('Inter Tight Regular'), local('Inter-TightRegular'), 
+                 url('fonts/InterTight-Regular.woff2') format('woff2'),
+                 url('fonts/InterTight-Regular.woff') format('woff');
+        }
+        @font-face {
+            font-family: 'Inter Tight';
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: local('Inter Tight Medium'), local('Inter-TightMedium'), 
+                 url('fonts/InterTight-Medium.woff2') format('woff2'),
+                 url('fonts/InterTight-Medium.woff') format('woff');
+        }
+        @font-face {
+            font-family: 'Inter Tight';
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: local('Inter Tight SemiBold'), local('Inter-TightSemiBold'), 
+                 url('fonts/InterTight-SemiBold.woff2') format('woff2'),
+                 url('fonts/InterTight-SemiBold.woff') format('woff');
+        }
+        @font-face {
+            font-family: 'Inter Tight';
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: local('Inter Tight Bold'), local('Inter-TightBold'), 
+                 url('fonts/InterTight-Bold.woff2') format('woff2'),
+                 url('fonts/InterTight-Bold.woff') format('woff');
+        }
         * {
             margin: 0;
             padding: 0;
@@ -14,13 +60,85 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Inter Tight', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #fafafa;
             min-height: 100vh;
             padding: 40px 20px;
             color: #1a1a1a;
             line-height: 1.6;
             font-weight: 400;
+        }
+
+        /* Preloader Styles */
+        .preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fafafa;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preloader-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            background: #fafafa;
+            z-index: 10001;
+        }
+
+        .preloader-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            background: #fafafa;
+            z-index: 10001;
+        }
+
+        .loading-bar-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 7px;
+            background: rgba(26, 26, 26, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            z-index: 10002;
+        }
+
+        .loading-bar {
+            width: 0%;
+            height: 100%;
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
+
+        .percentage-counter {
+            position: absolute;
+            top: 40px;
+            right: 40px;
+            font-family: 'Inter Tight', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1a1a1a;
+            letter-spacing: 0.5px;
+            z-index: 10002;
+        }
+
+        /* Main Content */
+        .main-content {
+            opacity: 0;
+            visibility: hidden;
         }
 
         .container {
@@ -405,7 +523,19 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- GSAP Preloader -->
+    <div class="preloader" id="preloader">
+        <div class="preloader-top" id="preloader-top"></div>
+        <div class="preloader-bottom" id="preloader-bottom"></div>
+        <div class="loading-bar-container">
+            <div class="loading-bar" id="loading-bar"></div>
+        </div>
+        <div class="percentage-counter" id="percentage-counter">000%</div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+        <div class="container">
         <div class="header">
             <h1>📚 Chrome Bookmarks Manager</h1>
             <p>Upload and organize your Chrome bookmarks with persistent storage and beautiful accordion folders.</p>
@@ -456,6 +586,90 @@
     </div>
 
     <script>
+        class Preloader {
+            constructor() {
+                this.preloader = document.getElementById('preloader');
+                this.preloaderTop = document.getElementById('preloader-top');
+                this.preloaderBottom = document.getElementById('preloader-bottom');
+                this.loadingBar = document.getElementById('loading-bar');
+                this.percentageCounter = document.getElementById('percentage-counter');
+                this.mainContent = document.getElementById('main-content');
+                
+                this.currentPercentage = 0;
+                this.targetPercentage = 100;
+                
+                this.init();
+            }
+
+            init() {
+                // Start the preloader animation
+                this.animateLoader();
+            }
+
+            animateLoader() {
+                // Create GSAP timeline for smooth loading animation
+                const tl = gsap.timeline();
+                
+                // Animate loading bar and percentage counter simultaneously
+                tl.to(this.loadingBar, {
+                    width: '100%',
+                    duration: 2.5,
+                    ease: 'power2.out'
+                })
+                .to({ percentage: 0 }, {
+                    percentage: 100,
+                    duration: 2.5,
+                    ease: 'power2.out',
+                    onUpdate: () => {
+                        const current = Math.round(gsap.getProperty(tl.targets()[1], 'percentage'));
+                        this.percentageCounter.textContent = current.toString().padStart(3, '0') + '%';
+                    }
+                }, 0) // Start at the same time as loading bar
+                .call(() => {
+                    // Once loading is complete, start exit animation
+                    this.exitAnimation();
+                });
+            }
+
+            exitAnimation() {
+                // Create timeline for split panel exit animation
+                const exitTl = gsap.timeline();
+                
+                exitTl.to(this.preloaderTop, {
+                    y: '-100%',
+                    duration: 0.8,
+                    ease: 'power2.inOut'
+                })
+                .to(this.preloaderBottom, {
+                    y: '100%',
+                    duration: 0.8,
+                    ease: 'power2.inOut'
+                }, 0) // Start at the same time as top panel
+                .call(() => {
+                    // Hide preloader completely
+                    this.preloader.style.display = 'none';
+                    
+                    // Show main content with fade in
+                    this.showMainContent();
+                });
+            }
+
+            showMainContent() {
+                // Make main content visible and animate in
+                this.mainContent.style.visibility = 'visible';
+                
+                gsap.to(this.mainContent, {
+                    opacity: 1,
+                    duration: 0.6,
+                    ease: 'power2.out',
+                    onComplete: () => {
+                        // Initialize the main application after preloader is done
+                        window.bookmarksManager = new BookmarksManager();
+                    }
+                });
+            }
+        }
+
         class BookmarksManager {
             constructor() {
                 this.storageKey = 'chrome-bookmarks-data';
@@ -476,17 +690,6 @@
                 this.displayUploadedFiles();
                 this.updateStats();
                 this.initAnimations();
-                
-                // Hide loading with GSAP animation
-                setTimeout(() => {
-                    gsap.to('#loading', {
-                        opacity: 0,
-                        duration: 0.5,
-                        onComplete: () => {
-                            document.getElementById('loading').style.display = 'none';
-                        }
-                    });
-                }, 500);
             }
 
             initAnimations() {
@@ -1134,8 +1337,11 @@
             bookmarksManager.clearAll();
         }
 
-        // Initialize the app
-        const bookmarksManager = new BookmarksManager();
+        // Initialize the preloader first
+        document.addEventListener('DOMContentLoaded', () => {
+            const preloader = new Preloader();
+        });
     </script>
+    </div> <!-- End main-content -->
 </body>
 </html>
