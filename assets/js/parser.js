@@ -163,7 +163,14 @@ class BookmarkParser {
             'new blog': 'Blogs',
             'iconz': 'Inspiration',
             'mockups': 'Inspiration',
-            'trends + typography': 'Inspiration'
+            'trends + typography': 'Inspiration',
+            'ds': 'Design',
+            'dsgn': 'Design',
+            'temp 0': 'Temporary',
+            'temp 1': 'Temporary',
+            'temp 2': 'Temporary',
+            'temp 3': 'Temporary',
+            'check later - - -': 'Check Later'
         };
 
         const key = n.toLowerCase();

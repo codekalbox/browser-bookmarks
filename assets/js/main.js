@@ -1,7 +1,31 @@
 /**
- * Main Application Controller
- * Handles GSAP animations, UI Initialization, and Event Listeners
+ * Theme & Mode Management
  */
+function initTheme() {
+    const theme = localStorage.getItem('curator-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    updateThemeIcon(theme);
+
+    // Show toggle button once initialized
+    const themeBtn = document.getElementById('theme-toggle');
+    if (themeBtn) themeBtn.style.display = 'flex';
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('curator-theme', newTheme);
+    updateThemeIcon(newTheme);
+}
+
+function updateThemeIcon(theme) {
+    const icon = document.getElementById('theme-icon');
+    if (icon) {
+        icon.innerText = theme === 'light' ? '🌙' : '☀️';
+    }
+}
 
 /**
  * GSAP Preloader Logic
@@ -195,15 +219,15 @@ function renderBookmarks(categories) {
         tocItem.innerHTML = `<span class="toc-link" data-target="${sectionId}">${catName}</span>`;
         tocList.appendChild(tocItem);
 
-        // GSAP Category Entrance
+        // GSAP Category Entrance - Snappier
         gsap.from(section, {
-            y: 40,
+            y: 30,
             opacity: 0,
-            duration: 0.8,
-            ease: "power3.out",
+            duration: 0.5,
+            ease: "power2.out",
             scrollTrigger: {
                 trigger: section,
-                start: "top 90%"
+                start: "top 95%"
             }
         });
     });
@@ -241,11 +265,11 @@ function toggleTOC(open) {
 
     if (open) {
         overlay.classList.add('active');
-        gsap.to(sidePanel, { right: 0, duration: 0.8, ease: "power4.out" });
+        gsap.to(sidePanel, { right: 0, duration: 0.4, ease: "power4.out" });
         document.body.style.overflow = 'hidden';
     } else {
         overlay.classList.remove('active');
-        gsap.to(sidePanel, { right: -400, duration: 0.6, ease: "power4.in" });
+        gsap.to(sidePanel, { right: -400, duration: 0.3, ease: "power4.in" });
         document.body.style.overflow = '';
     }
 }
@@ -259,8 +283,12 @@ function initEvents() {
     const clearBtn = document.getElementById('clear-data');
     const uploadBtn = document.getElementById('upload-trigger');
     const tocToggle = document.getElementById('toc-toggle');
+    const themeToggle = document.getElementById('theme-toggle');
     const tocClose = document.getElementById('toc-close');
     const overlay = document.getElementById('side-panel-overlay');
+
+    // 0. Theme Toggle
+    themeToggle.onclick = () => toggleTheme();
 
     // 1. TOC Toggle
     tocToggle.onclick = () => toggleTOC(true);
@@ -320,14 +348,14 @@ function initEvents() {
     dropZone.addEventListener('mouseover', (e) => {
         const card = e.target.closest('.bookmark-card');
         if (card) {
-            gsap.to(card, { scale: 1.02, y: -4, borderColor: "#000", duration: 0.3, ease: "power2.out" });
+            gsap.to(card, { scale: 1.02, y: -4, borderColor: "var(--accent-color)", duration: 0.3, ease: "power2.out" });
         }
     });
 
     dropZone.addEventListener('mouseout', (e) => {
         const card = e.target.closest('.bookmark-card');
         if (card) {
-            gsap.to(card, { scale: 1, y: 0, borderColor: "#eeeeee", duration: 0.3, ease: "power2.out" });
+            gsap.to(card, { scale: 1, y: 0, borderColor: "var(--card-border)", duration: 0.3, ease: "power2.out" });
         }
     });
 }
@@ -380,6 +408,7 @@ async function handleFiles(fileList) {
  * Bootstrapper
  */
 document.addEventListener('DOMContentLoaded', async () => {
+    initTheme();
     initPreloader();
     initEvents();
 
