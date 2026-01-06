@@ -905,6 +905,12 @@
             processBookmarks(bookmarks, fileId, uploadDate) {
                 const dateData = this.data.filesByDate[uploadDate];
                 
+                // Ensure dateData exists and has folders property
+                if (!dateData || !dateData.folders) {
+                    console.error('Invalid date data structure for:', uploadDate);
+                    return;
+                }
+                
                 Object.keys(bookmarks).forEach(folderName => {
                     if (!dateData.folders[folderName]) {
                         dateData.folders[folderName] = {};
@@ -1122,44 +1128,66 @@
                 const bookmarkLinks = document.querySelectorAll('.bookmark-link');
                 
                 bookmarkLinks.forEach(link => {
-                    link.addEventListener('mouseenter', () => {
+                    // Remove existing listeners to prevent duplicates
+                    if (link._hoverEnter) {
+                        link.removeEventListener('mouseenter', link._hoverEnter);
+                        link.removeEventListener('mouseleave', link._hoverLeave);
+                    }
+                    
+                    // Create new event handlers and store references
+                    link._hoverEnter = () => {
                         gsap.to(link, {
                             x: 8,
                             backgroundColor: '#f3f4f6',
                             duration: 0.3,
                             ease: 'power2.out'
                         });
-                    });
+                    };
                     
-                    link.addEventListener('mouseleave', () => {
+                    link._hoverLeave = () => {
                         gsap.to(link, {
                             x: 0,
                             backgroundColor: '#fafafa',
                             duration: 0.3,
                             ease: 'power2.out'
                         });
-                    });
+                    };
+                    
+                    // Add new listeners
+                    link.addEventListener('mouseenter', link._hoverEnter);
+                    link.addEventListener('mouseleave', link._hoverLeave);
                 });
 
                 // Add hover animations to accordion headers
                 const accordionHeaders = document.querySelectorAll('.accordion-header');
                 
                 accordionHeaders.forEach(header => {
-                    header.addEventListener('mouseenter', () => {
+                    // Remove existing listeners
+                    if (header._hoverEnter) {
+                        header.removeEventListener('mouseenter', header._hoverEnter);
+                        header.removeEventListener('mouseleave', header._hoverLeave);
+                    }
+                    
+                    // Create and store new handlers
+                    header._hoverEnter = () => {
                         gsap.to(header, {
                             backgroundColor: '#f9fafb',
                             duration: 0.3,
                             ease: 'power2.out'
                         });
-                    });
+                    };
                     
-                    header.addEventListener('mouseleave', () => {
+                    header._hoverLeave = () => {
                         gsap.to(header, {
                             backgroundColor: '#ffffff',
                             duration: 0.3,
                             ease: 'power2.out'
                         });
-                    });
+                    };
+                    
+                    // Add new listeners
+                    header.addEventListener('mouseenter', header._hoverEnter);
+                    header.addEventListener('mouseleave', header._hoverLeave);
                 });
             }
 
